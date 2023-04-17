@@ -1,3 +1,5 @@
+# Price time priority limit order book
+# LOB = limit order book
 import heapq
 from collections import deque
 from datetime import datetime
@@ -45,7 +47,7 @@ class LimitOrderBook:
         self.display()
         return cancelled
 
-    # TODO - make this work correctly. Prevent orders from being executed if a user does not have enough money to buy the stock or enough stock to sell. also check multiple order levels to see if the order can be filled and execute all crossing levels
+    # TODO - make this work correctly. If we want, we can allow shorting/negative amounts of stock or money (negative money is like margin/borrowing money). LOOK AT LATER TODO. But, I didn't allow shorting or margin because IMO this is more realistic for a simple stock exchange (in practice, margin and shorting is complicated). Prevent orders from being executed if a user does not have enough money to buy the stock or enough stock to sell. also check multiple order levels to see if the order can be filled and execute all crossing levels
     def match_orders(self):
         # If the top bid and ask are not enough to fill the order size, we need to loop at look at the next highest bid or next lowest ask and see if those cross the order price, until we fill the entire order size or the bids or asks no longer cross. TODO: check that this works correctly
         while self.bids and self.asks:
@@ -61,6 +63,7 @@ class LimitOrderBook:
                     # TODO: better error handling? what do we do with the order that was not executed?
                     print("Error: User does not have enough balance or stocks to execute order.")
                     break
+                # TODO - should we just allow shorting/negative amounts of stock or money because then we don't have to worry about this?
                 
                 bid.user.balance += -executed_quantity * execution_price
                 bid.user.stocks += executed_quantity
@@ -94,7 +97,7 @@ class User:
     def __init__(self, username, password):
         self.username = username
         self.password = password
-        # TODO: Configure this in UI 
+        # TODO: Add ability to Configure this in UI 
         self.balance = 1000
         self.stocks = 100
 
