@@ -47,11 +47,11 @@ class LimitOrderBook:
 
     # TODO - make this work correctly. Prevent orders from being executed if a user does not have enough money to buy the stock or enough stock to sell. also check multiple order levels to see if the order can be filled and execute all crossing levels
     def match_orders(self):
+        # If the top bid and ask are not enough to fill the order size, we need to loop at look at the next highest bid or next lowest ask and see if those cross the order price, until we fill the entire order size or the bids or asks no longer cross. TODO: check that this works correctly
         while self.bids and self.asks:
             bid = self.bids[0][2]
             ask = self.asks[0][2]
 
-            # TODO: If the top bid and ask are not enough to fill the order size, we need to loop at look at the next highest bid or next lowest ask and see if those cross the order price, until we fill the entire order size or the bids or asks no longer cross
             if -self.bids[0][0] >= self.asks[0][0]:  # Check if top bid price is >= top ask price
                 executed_quantity = min(bid.quantity, ask.quantity)
                 execution_price = (bid.price + ask.price) / 2
@@ -94,8 +94,9 @@ class User:
     def __init__(self, username, password):
         self.username = username
         self.password = password
+        # TODO: Configure this in UI 
         self.balance = 1000
-        self.stocks = 0
+        self.stocks = 100
 
 def authenticate(users, username, password):
     for user in users:
@@ -242,7 +243,7 @@ def test_match_orders():
     assert len(book.bids) == 0, "Failed to clear bid order book after execution"
     assert len(book.asks) == 0, "Failed to clear ask order book after execution"
     assert user1.balance == 950, "Incorrect user1 balance after execution"
-    assert user1.stocks == 5, "Incorrect user1 stocks after execution"
+    assert user1.stocks == 105, "Incorrect user1 stocks after execution"
     assert user2
 
 
