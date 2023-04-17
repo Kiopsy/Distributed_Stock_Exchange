@@ -1,5 +1,6 @@
 import heapq
 from collections import deque
+from datetime import datetime
 
 class Order:
     def __init__(self, price, quantity, timestamp):
@@ -14,21 +15,24 @@ class LimitOrderBook:
         heapq.heapify(self.bids)
         heapq.heapify(self.asks)
 
-    def add_order(self, side, price, quantity, timestamp):
-        order = Order(price, quantity, timestamp)
+    def add_order(self, side, price, quantity):
+        order = Order(price, quantity, datetime.now())
         if side == 'bid':
-            heapq.heappush(self.bids, (-price, timestamp, order))
+            # If there's a tie with the first element of the tuple, then heapq looks at the second element of the tuple to break the tie, and so on.
+            # by default, Python heapq implements a min heap. So, need -price to get a max heap.
+            # So, this achieves price-time priority for bids and asks.
+            heapq.heappush(self.bids, (-price, order.timestamp, order))
         elif side == 'ask':
-            heapq.heappush(self.asks, (price, timestamp, order))
+            heapq.heappush(self.asks, (price, order.timestamp, order))
 
-    def cancel_order(self, side, price, timestamp):
+    def cancel_order(self, side, price):
         if side == 'bid':
             target_book = self.bids
         elif side == 'ask':
             target_book = self.asks
 
         for i in range(len(target_book)):
-            if target_book[i][1] == timestamp and target_book[i][2].price == price:
+            if target_book[i][2].price == price:
                 del target_book[i]
                 heapq.heapify(target_book)
                 return True
@@ -58,14 +62,12 @@ def main():
             side = input("Enter 'bid' or 'ask': ")
             price = float(input("Enter price: "))
             quantity = int(input("Enter quantity: "))
-            timestamp = int(input("Enter timestamp: "))
-            book.add_order(side, price, quantity, timestamp)
+            book.add_order(side, price, quantity)
 
         elif option == '2':
             side = input("Enter 'bid' or 'ask': ")
             price = float(input("Enter price: "))
-            timestamp = int(input("Enter timestamp: "))
-            if book.cancel_order(side, price, timestamp):
+            if book.cancel_order(side, price):
                 print("Order cancelled.")
             else:
                 print("Order not found.")
