@@ -36,10 +36,11 @@ class LimitOrderBook:
             if target_book[i][2].price == price:
                 del target_book[i]
                 heapq.heapify(target_book)
+                
+                self.display()
                 return True
         return False
 
-        self.display()
 
     def display(self):
         print("Bids:")
