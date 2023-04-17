@@ -33,7 +33,7 @@ class LimitOrderBook:
         elif side == 'ask':
             target_book = self.asks
         cancelled = False 
-        # TODO: check that handle case where there are multiple orders at the same price from the same user - we could just cancel all those orders, check that this does that successfully
+        # Albert: note that this cancels all orders in a price level for a user, not canceling a specific order because we don't have order-ids. I think this is fine
         # Albert: i think we do cancel all those orders successfully. I think this behavior is okay.
         i = 0
         while i < len(target_book): 
@@ -47,8 +47,10 @@ class LimitOrderBook:
         self.display()
         return cancelled
 
-    # TODO - make this work correctly. If we want, we can allow shorting/negative amounts of stock or money (negative money is like margin/borrowing money). LOOK AT LATER TODO. But, I didn't allow shorting or margin because IMO this is more realistic for a simple stock exchange (in practice, margin and shorting is complicated). Prevent orders from being executed if a user does not have enough money to buy the stock or enough stock to sell. also check multiple order levels to see if the order can be filled and execute all crossing levels
+    # TODO: ALBERT says that he thinks this function works except for when users can't afford to buy or sell (insufficient stock or money). To fix this, Albert thinks easiest way is to just not bother checking for this. Like allow people to have negative amounts of balance/money and stock. That is the simplest solution, we can justify this by saying having negative amounts of alance/money and stock is just"shorting".
+    # TODO If we want, we can allow shorting/negative amounts of stock or money (negative money is like margin/borrowing money). But, I didn't allow shorting or margin because IMO this is more realistic for a simple stock exchange (in practice, margin and shorting is complicated). Prevent orders from being executed if a user does not have enough money to buy the stock or enough stock to sell. also check multiple order levels to see if the order can be filled and execute all crossing levels
     def match_orders(self):
+        """Prevent orders from being executed if a user does not have enough money to buy the stock or enough stock to sell. also check multiple order levels to see if the order can be filled and execute all crossing levels"""
         # If the top bid and ask are not enough to fill the order size, we need to loop at look at the next highest bid or next lowest ask and see if those cross the order price, until we fill the entire order size or the bids or asks no longer cross. TODO: check that this works correctly
         while self.bids and self.asks:
             bid = self.bids[0][2]
