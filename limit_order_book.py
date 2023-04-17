@@ -32,6 +32,7 @@ class LimitOrderBook:
             target_book = self.asks
         cancelled = False 
         # TODO: check that handle case where there are multiple orders at the same price from the same user - we could just cancel all those orders, check that this does that successfully
+        # Albert: i think we do cancel all those orders successfully. I think this behavior is okay.
         i = 0
         while i < len(target_book): 
             if target_book[i][2].price == price and target_book[i][2].user == user:
