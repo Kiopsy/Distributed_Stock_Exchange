@@ -112,6 +112,9 @@ def main():
             password = input("Enter a password: ")
             users.append(User(username, password))
             print(f"User {username} registered.")
+            user = authenticate(users, username, password)
+            if user:
+                logged_in_UI(user, username, book)
 
         elif option == '2':
             username = input("Enter your username: ")
@@ -119,40 +122,7 @@ def main():
             user = authenticate(users, username, password)
 
             if user:
-                print(f"Welcome, {username}! Your balance: ${user.balance:.2f}, stocks: {user.stocks}")
-                while True:
-                    print("="*20)
-                    print("\nUser Options:")
-                    print("1. Add order")
-                    print("2. Cancel order")
-                    print("3. Display order book")
-                    print("4. Log out")
-
-                    user_option = input("Select an option: ")
-                    print("="*20)
-
-                    if user_option == '1':
-                        side = input("Enter 'bid' or 'ask': ")
-                        price = float(input("Enter price: "))
-                        quantity = int(input("Enter quantity: "))
-                        book.add_order(side, price, quantity, user)
-
-                    elif user_option == '2':
-                        side = input("Enter 'bid' or 'ask': ")
-                        price = float(input("Enter price: "))
-                        if book.cancel_order(side, price, user):
-                            print("Order cancelled.")
-                        else:
-                            print("Order not found.")
-
-                    elif user_option == '3':
-                        book.display()
-
-                    elif user_option == '4':
-                        break
-
-                    else:
-                        print("Invalid option. Try again.")
+                logged_in_UI(user, username, book)
 
             else:
                 print("Invalid username or password. Try again.")
@@ -161,6 +131,43 @@ def main():
             book.display()
 
         elif option == '4':
+            break
+
+        else:
+            print("Invalid option. Try again.")
+            
+
+def logged_in_UI(user, username, book):
+    print(f"Welcome, {username}! Your balance: ${user.balance:.2f}, stocks: {user.stocks}")
+    while True:
+        print("="*20)
+        print("\nUser Options:")
+        print("1. Add order")
+        print("2. Cancel order")
+        print("3. Display order book")
+        print("4. Log out")
+
+        user_option = input("Select an option: ")
+        print("="*20)
+
+        if user_option == '1':
+            side = input("Enter 'bid' or 'ask': ")
+            price = float(input("Enter price: "))
+            quantity = int(input("Enter quantity: "))
+            book.add_order(side, price, quantity, user)
+
+        elif user_option == '2':
+            side = input("Enter 'bid' or 'ask': ")
+            price = float(input("Enter price: "))
+            if book.cancel_order(side, price, user):
+                print("Order cancelled.")
+            else:
+                print("Order not found.")
+
+        elif user_option == '3':
+            book.display()
+
+        elif user_option == '4':
             break
 
         else:
