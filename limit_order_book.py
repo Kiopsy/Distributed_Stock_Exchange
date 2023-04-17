@@ -24,6 +24,7 @@ class LimitOrderBook:
             heapq.heappush(self.bids, (-price, order.timestamp, order))
         elif side == 'ask':
             heapq.heappush(self.asks, (price, order.timestamp, order))
+        self.display()
 
     def cancel_order(self, side, price):
         if side == 'bid':
@@ -37,6 +38,8 @@ class LimitOrderBook:
                 heapq.heapify(target_book)
                 return True
         return False
+
+        self.display()
 
     def display(self):
         print("Bids:")
