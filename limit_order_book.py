@@ -31,6 +31,7 @@ class LimitOrderBook:
         elif side == 'ask':
             target_book = self.asks
 
+        # TODO: check that handle case where there are multiple orders at the same price from the same user - we could just cancel all those orders, check that this does that successfully
         for i in range(len(target_book)):
             if target_book[i][2].price == price and target_book[i][2].user == user:
                 del target_book[i]
@@ -76,32 +77,79 @@ class LimitOrderBook:
         for ask in self.asks:
             print(f"User: {ask[2].user.username}, Price: {ask[2].price}, Quantity: {ask[2].quantity}, Timestamp: {ask[1]}")
 
+class User:
+    def __init__(self, username, password):
+        self.username = username
+        self.password = password
+        self.balance = 1000
+        self.stocks = 0
+
+def authenticate(users, username, password):
+    for user in users:
+        if user.username == username and user.password == password:
+            return user
+    return None
+
 
 def main():
     book = LimitOrderBook()
+    users = []
 
     while True:
-        print("\nOptions:")
-        print("1. Add order")
-        print("2. Cancel order")
+        print("1. Register user")
+        print("2. Log in")
         print("3. Display order book")
         print("4. Quit")
 
         option = input("Select an option: ")
 
         if option == '1':
-            side = input("Enter 'bid' or 'ask': ")
-            price = float(input("Enter price: "))
-            quantity = int(input("Enter quantity: "))
-            book.add_order(side, price, quantity)
+            username = input("Enter a username: ")
+            password = input("Enter a password: ")
+            users.append(User(username, password))
+            print(f"User {username} registered.")
 
         elif option == '2':
-            side = input("Enter 'bid' or 'ask': ")
-            price = float(input("Enter price: "))
-            if book.cancel_order(side, price):
-                print("Order cancelled.")
+            username = input("Enter your username: ")
+            password = input("Enter your password: ")
+            user = authenticate(users, username, password)
+
+            if user:
+                print(f"Welcome, {username}! Your balance: ${user.balance:.2f}, stocks: {user.stocks}")
+                while True:
+                    print("\nUser Options:")
+                    print("1. Add order")
+                    print("2. Cancel order")
+                    print("3. Display order book")
+                    print("4. Log out")
+
+                    user_option = input("Select an option: ")
+
+                    if user_option == '1':
+                        side = input("Enter 'bid' or 'ask': ")
+                        price = float(input("Enter price: "))
+                        quantity = int(input("Enter quantity: "))
+                        book.add_order(side, price, quantity, user)
+
+                    elif user_option == '2':
+                        side = input("Enter 'bid' or 'ask': ")
+                        price = float(input("Enter price: "))
+                        if book.cancel_order(side, price, user):
+                            print("Order cancelled.")
+                        else:
+                            print("Order not found.")
+
+                    elif user_option == '3':
+                        book.display()
+
+                    elif user_option == '4':
+                        break
+
+                    else:
+                        print("Invalid option. Try again.")
+
             else:
-                print("Order not found.")
+                print("Invalid username or password. Try again.")
 
         elif option == '3':
             book.display()
