@@ -32,15 +32,18 @@ class LimitOrderBook:
             target_book = self.asks
         cancelled = False 
         # TODO: check that handle case where there are multiple orders at the same price from the same user - we could just cancel all those orders, check that this does that successfully
-        for i in range(len(target_book)):
-            if i < len(target_book) and target_book[i][2].price == price and target_book[i][2].user == user:
+        i = 0
+        while i < len(target_book): 
+            if target_book[i][2].price == price and target_book[i][2].user == user:
                 del target_book[i]
                 heapq.heapify(target_book)
                 self.display()
                 cancelled = True
+                i = 0  
+            i += 1
         return cancelled
 
-    # TODO - make this work correctly. Prevent orders from being executed if a user does not have enough money to buy the stock or enough stock to sell
+    # TODO - make this work correctly. Prevent orders from being executed if a user does not have enough money to buy the stock or enough stock to sell. also check multiple order levels to see if the order can be filled and execute all crossing levels
     def match_orders(self):
         while self.bids and self.asks:
             bid = self.bids[0][2]
