@@ -56,6 +56,12 @@ class LimitOrderBook:
                 executed_quantity = min(bid.quantity, ask.quantity)
                 execution_price = (bid.price + ask.price) / 2
 
+                # Check if users have enough balance and stocks for the transaction
+                if bid.user.balance < executed_quantity * execution_price or ask.user.stocks < executed_quantity:
+                    # TODO: better error handling? what do we do with the order that was not executed?
+                    print("Error: User does not have enough balance or stocks to execute order.")
+                    break
+                
                 bid.user.balance += -executed_quantity * execution_price
                 bid.user.stocks += executed_quantity
                 ask.user.balance += executed_quantity * execution_price
