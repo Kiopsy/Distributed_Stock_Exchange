@@ -37,10 +37,11 @@ class LimitOrderBook:
             if target_book[i][2].price == price and target_book[i][2].user == user:
                 del target_book[i]
                 heapq.heapify(target_book)
-                self.display()
                 cancelled = True
                 i = 0  
-            i += 1
+            else:
+                i += 1
+        self.display()
         return cancelled
 
     # TODO - make this work correctly. Prevent orders from being executed if a user does not have enough money to buy the stock or enough stock to sell. also check multiple order levels to see if the order can be filled and execute all crossing levels
