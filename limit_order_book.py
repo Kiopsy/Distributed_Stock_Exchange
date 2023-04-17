@@ -47,7 +47,8 @@ class LimitOrderBook:
         self.display()
         return cancelled
 
-    # TODO: ALBERT says that he thinks this function works except for when users can't afford to buy or sell (insufficient stock or money). To fix this, Albert thinks easiest way is to just not bother checking for this. Like allow people to have negative amounts of balance/money and stock. That is the simplest solution, we can justify this by saying having negative amounts of alance/money and stock is just"shorting".
+    # TODO: ALBERT says that he thinks this function works except for when users can't afford to buy or sell (insufficient stock or money). To fix this, Albert thinks easiest way is to just not bother checking for this. Like allow people to have negative amounts of balance/money and stock. That is the simplest solution, we can justify this by saying having negative amounts of balance/money and stock is just"shorting". SO u can kind of ignore the later TODOs in this function. 
+    # the margin/shorting system i propose is 0 interest, loans are settled at time = infinity, so it's a "valid" margin/shorting system
     # TODO If we want, we can allow shorting/negative amounts of stock or money (negative money is like margin/borrowing money). But, I didn't allow shorting or margin because IMO this is more realistic for a simple stock exchange (in practice, margin and shorting is complicated). Prevent orders from being executed if a user does not have enough money to buy the stock or enough stock to sell. also check multiple order levels to see if the order can be filled and execute all crossing levels
     def match_orders(self):
         """Prevent orders from being executed if a user does not have enough money to buy the stock or enough stock to sell. also check multiple order levels to see if the order can be filled and execute all crossing levels"""
