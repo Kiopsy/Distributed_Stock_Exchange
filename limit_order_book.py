@@ -40,11 +40,13 @@ class LimitOrderBook:
                 return True
         return False
 
+    # TODO - make this work correctly. Prevent orders from being executed if a user does not have enough money to buy the stock or enough stock to sell
     def match_orders(self):
         while self.bids and self.asks:
             bid = self.bids[0][2]
             ask = self.asks[0][2]
 
+            # TODO: If the top bid and ask are not enough to fill the order size, we need to loop at look at the next highest bid or next lowest ask and see if those cross the order price, until we fill the entire order size or the bids or asks no longer cross
             if -self.bids[0][0] >= self.asks[0][0]:  # Check if top bid price is >= top ask price
                 executed_quantity = min(bid.quantity, ask.quantity)
                 execution_price = (bid.price + ask.price) / 2
@@ -96,12 +98,14 @@ def main():
     users = []
 
     while True:
+        print("="*20)
         print("1. Register user")
         print("2. Log in")
         print("3. Display order book")
         print("4. Quit")
 
         option = input("Select an option: ")
+        print("="*20)
 
         if option == '1':
             username = input("Enter a username: ")
@@ -117,6 +121,7 @@ def main():
             if user:
                 print(f"Welcome, {username}! Your balance: ${user.balance:.2f}, stocks: {user.stocks}")
                 while True:
+                    print("="*20)
                     print("\nUser Options:")
                     print("1. Add order")
                     print("2. Cancel order")
@@ -124,6 +129,7 @@ def main():
                     print("4. Log out")
 
                     user_option = input("Select an option: ")
+                    print("="*20)
 
                     if user_option == '1':
                         side = input("Enter 'bid' or 'ask': ")
