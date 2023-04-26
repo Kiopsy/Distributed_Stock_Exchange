@@ -1,11 +1,13 @@
-import socket, threading, time, grpc, pickle
+import socket, threading, time, grpc, pickle, os
 import exchange_pb2 as exchange_pb2
 from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_ExchangeServiceServicer_to_server
 from helpers import Constants as c
 from concurrent import futures
+from collections import defaultdict
+from limit_order_book import LimitOrderBook, User
 
 # func "serve": starts an exchange server
-def serve(id):
+def serve(id: int) -> None:
     exchange = ExchangeServer(id)
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     add_ExchangeServiceServicer_to_server(exchange, server)
@@ -19,7 +21,7 @@ def serve(id):
         
 # class that defines an exchange and its server
 class ExchangeServer(ExchangeServiceServicer):
-    def __init__(self, id, silent=False) -> None:
+    def __init__(self, id: int, silent=False) -> None:
         self.ID = id
         self.SILENT = silent
 
@@ -45,19 +47,34 @@ class ExchangeServer(ExchangeServiceServicer):
         self.heartbeat_thread = threading.Thread(target = self.receive_heartbeat, daemon=True)
         self.stop_event = threading.Event()
 
-        # initialization of the commit log file
-        # if not os.path.exists(LOGS_DIR):
-        #     os.makedirs(LOGS_DIR)
-        # self.LOG_FILE_NAME = f"./{LOGS_DIR}/machine{self.MACHINE_ID}.log"
-        # self.log_file = open(self.LOG_FILE_NAME , "w")
+        # init commit log file
+        if not os.path.exists(c.LOGS_DIR):
+            os.makedirs(c.LOGS_DIR)
+        self.LOG_FILE_NAME = f"./{c.LOGS_DIR}/server{self.ID}.log"
+        self.log_file = open(self.LOG_FILE_NAME , "w")
+
+        # init pkl file
+        if not os.path.exists(c.PKL_DIR):
+            os.makedirs(c.PKL_DIR)
+        self.PKL_FILE_NAME = f"./{c.PKL_DIR}/server{self.ID}.pkl"
         
+        # load the database (create if it does not exist)
+        try:
+            with open(self.PKL_FILE_NAME, 'rb')  as dbfile:
+                self.db = pickle.load(dbfile)
+        except:
+            self.db = {
+                "orderbooks" : defaultdict(lambda: LimitOrderBook()),
+                "client_balance": defaultdict(int)
+            }
+    
         # thread safe set that tracks if a ballot id has been seen
         self.seen_ballots = set() # ThreadSafeSet()
 
     # func "sprint": prints within a server
-    def sprint(self, *args, end = "\n") -> None:
+    def sprint(self, *args, **kwargs) -> None:
         if not self.SILENT:
-            print(f"Server {self.ID}: {' '.join(str(x) for x in args)}", end = end)
+            print("Server {self.ID}", args, kwargs)
 
     # func "connect": connect current server to peers servers
     def connect(self) -> bool:
@@ -87,26 +104,21 @@ class ExchangeServer(ExchangeServiceServicer):
         self.sprint("Connected", self.peer_alive)
         return self.connected
     
-    # rpc func "Alive": takes in Empty and returns updates (if it is the primary machine) or no updates
+    # rpc func "Alive": takes in Empty and returns updates
     def Alive(self, request, context):
-        return exchange_pb2.ReviveInfo(updates = False)
-        # if self.primary_port == self.PORT:
-        #     try:
-        #         with open(self.LOG_FILE_NAME, 'r') as file:
-        #             text_data = file.read()
-        #         with open(self.db.filename, 'rb') as dbfile:
-        #             db_bytes = pickle.dumps(pickle.load(dbfile))
-        #     except:
-        #         text_data = ""
-        #         db_bytes = bytes()
-
-        #     return exchange_pb2.ReviveInfo(
-        #         primary_port = self.primary_port, 
-        #         commit_log = text_data, 
-        #         db_bytes = db_bytes,
-        #         updates = True)
-        # else:
-        #     return exchange_pb2.ReviveInfo(updates = False)
+        # only the primary can send over revive info (aka commit log)
+        if self.primary_port == self.PORT:
+            try:
+                with open(self.LOG_FILE_NAME, 'r') as file:
+                    text_data = file.read()
+            except:
+                text_data = ""
+            return exchange_pb2.ReviveInfo(
+                primary_port = self.primary_port, 
+                commit_log = text_data, 
+                updates = True)
+        else:
+            return exchange_pb2.ReviveInfo(updates = False)
     
     # func "receive_heartbeat": ask all other machines if they are alive by asking of
     def receive_heartbeat(self) -> None:
@@ -141,8 +153,8 @@ class ExchangeServer(ExchangeServiceServicer):
     def RequestHeartbeat(self, request, context):
         return exchange_pb2.HeartbeatResponse(port=self.PORT)
     
-    # func "revive": revive's a server if need be
-    def revive(self, revive_info):
+    # func "revive": revive's a server based on the primary's commit log
+    def revive(self, revive_info: ):
         pass
 
     # func "leader_election": uses the bully algorithm to elect the machine with the lowest port as the leader
@@ -152,5 +164,21 @@ class ExchangeServer(ExchangeServiceServicer):
         self.sprint(f"New primary: {self.primary_port}")
         return self.primary_port
     
+    # rpc func "SendOrder": 
+    def SendOrder(self, request, context):
+        return super().SendOrder(request, context)
+
     def Ping(self, request, context):
         return exchange_pb2.Empty()
+    
+    """
+    1.  Copy/paste paxos algo and make it work with our current DB (not 
+        sure if it needs to change)
+    2.  Start thinking about the state machine and how we read each line from
+        the commit file
+    3.  Write the revive function that takes the commit log from the primary
+        and compares with its own log and revives itself using state machine.
+
+        Do not worry about where exactly paxos will be run. I will implement this
+        when working with Gianni on the receive end of the broker's RPC calls 
+    """
