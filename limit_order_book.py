@@ -13,6 +13,7 @@ class Order:
 
 class LimitOrderBook:
     def __init__(self):
+        # TODO: REPLICATE THIS
         self.bids = []
         self.asks = []
         heapq.heapify(self.bids)
