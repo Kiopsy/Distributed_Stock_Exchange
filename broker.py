@@ -13,6 +13,7 @@ class Broker(BrokerServiceServicer):
         self.uid_to_balance: Dict[str, int] = {}
         self.uid_to_tickers_to_amounts: Dict[str, List[Tuple[str, int]]] = {}
         self.stub = TwoFaultStub()
+        self.stub.connect()
 
     def SendOrder(self, request, context):
         if request.OrderType == exchange_pb2.OrderType.BID:
@@ -64,7 +65,7 @@ class Broker(BrokerServiceServicer):
     def receive_pings(self):
         while True:
             self.stub.Ping(exchange_pb2.Empty())
-            os.sleep(3)
+            time.sleep(3)
     
 
 if __name__ == "__main__":
