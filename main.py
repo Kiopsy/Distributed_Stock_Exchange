@@ -55,5 +55,6 @@ def main():
 
 if __name__ == '__main__':
     # Get your own hostname:
-    # hostname = socket.gethostbyname(socket.gethostname())
+    hostname = socket.gethostbyname(socket.gethostname())
+    print("Hostname:", hostname)
     main()

@@ -1,7 +1,7 @@
 import socket, threading, time, grpc, pickle
 import exchange_pb2 as exchange_pb2
 from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_ExchangeServiceServicer_to_server
-from constants import Constants as c
+from helpers import Constants as c
 from concurrent import futures
 
 # func "serve": starts an exchange server
@@ -151,3 +151,6 @@ class ExchangeServer(ExchangeServiceServicer):
         self.primary_port = min(alive_ports)
         self.sprint(f"New primary: {self.primary_port}")
         return self.primary_port
+    
+    def Ping(self, request, context):
+        return super().Ping(request, context)

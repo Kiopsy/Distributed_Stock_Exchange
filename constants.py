@@ -1,8 +1,0 @@
-class Constants:
-    SERVER_IPS = {50050: "10.253.80.67", 50051: "10.253.80.67", 50052: "10.253.80.67"}
-
-    HEARTRATE = 5
-
-    NUM_SERVERS = 3
-
-    CONNECTION_WAIT_TIME = 3

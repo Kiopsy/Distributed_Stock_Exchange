@@ -1,7 +1,8 @@
-import socket, threading, futures, time, grpc
+import socket, threading, futures, time, grpc, os
 import exchange_pb2
 from exchange_pb2_grpc import BrokerServiceServicer, BrokerServiceStub, add_BrokerServiceServicer_to_server
-from constants import Constants as c
+from helpers import Constants as c
+from helpers import TwoFaultStub
 from typing import Dict, List, Tuple
 
 FEE = 1
@@ -10,6 +11,7 @@ class Broker(BrokerServiceServicer):
     def __init__(self) -> None:
         self.uid_to_balance: Dict[str, int] = {}
         self.uid_to_tickers_to_amounts: Dict[str, List[Tuple[str, int]]] = {}
+        self.stub = TwoFaultStub()
 
     def SendOrder(self, request, context):
         if request.OrderType == exchange_pb2.OrderType.BID:
@@ -58,4 +60,12 @@ class Broker(BrokerServiceServicer):
 
         return exchange_pb2.OrderId(oid=-1)
     
+    def receive_pings(self):
+        while True:
+            self.stub.Ping(exchange_pb2.Empty())
+            os.sleep(3)
     
+
+if __name__ == "__main__":
+    broker = Broker()
+    threading.Thread(target=broker.receive_pings).start()
