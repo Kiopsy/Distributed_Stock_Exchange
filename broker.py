@@ -65,7 +65,7 @@ class Broker(BrokerServiceServicer):
     def receive_pings(self):
         while True:
             self.stub.Ping(exchange_pb2.Empty())
-            os.sleep(3)
+            time.sleep(3)
     
 
 if __name__ == "__main__":
