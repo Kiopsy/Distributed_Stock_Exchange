@@ -13,6 +13,7 @@ class Broker(BrokerServiceServicer):
         self.uid_to_balance: Dict[str, int] = {}
         self.uid_to_tickers_to_amounts: Dict[str, List[Tuple[str, int]]] = {}
         self.stub = TwoFaultStub()
+        self.stub.connect()
 
     def SendOrder(self, request, context):
         if request.OrderType == exchange_pb2.OrderType.BID:

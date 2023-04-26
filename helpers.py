@@ -19,7 +19,7 @@ class TwoFaultStub:
         for port, host in self.SERVERS.items():
             try:
                 channel = grpc.insecure_channel(host + ':' + str(port)) 
-                self.stub = exchange_pb2_grpc.ChatServiceStub(channel)
+                self.stub = exchange_pb2_grpc.ExchangeServiceStub(channel)
                 self.stub.Ping(exchange_pb2.Empty())
 
                 print(f"Client connected to server w/ port {port}")

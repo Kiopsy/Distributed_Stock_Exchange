@@ -153,4 +153,4 @@ class ExchangeServer(ExchangeServiceServicer):
         return self.primary_port
     
     def Ping(self, request, context):
-        return super().Ping(request, context)
+        return exchange_pb2.Empty()
