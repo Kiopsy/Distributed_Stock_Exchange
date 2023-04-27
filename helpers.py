@@ -1,7 +1,5 @@
-import threading, grpc, exchange_pb2_grpc, exchange_pb2
+import threading, grpc, exchange_pb2_grpc, exchange_pb2, random, time
 from concurrent import futures
-import random
-import threading
 
 class Constants:
     SERVER_IPS = {50050: "10.252.70.134", 50051: "10.252.70.134", 50052: "10.252.70.134"}
@@ -12,38 +10,57 @@ class Constants:
 
     CONNECTION_WAIT_TIME = 3
 
+    MAX_VOTE_ATTEMPTS = 5
+
+    BACKGROUND_STUB_REFRESH_RATE = 5
+
     EXCHANGE_FEE = 1
 
     LOG_DIR = "logs"
 
     PKL_DIR = "pickles"
 
+    DIVIDER = "*(&*^&%^$%^)"
+
     TICKERS = ["GOOGL", "AAPL", "MSFT"]
 
-class TwoFaultStub:
+class nFaultStub:
     def __init__(self):
-        self.stub: list[exchange_pb2_grpc.ExchangeServiceStub, int] = [None, None]
-        self.backup_stub: list[exchange_pb2_grpc.ExchangeServiceStub, int] = [None, None]
-        self.SERVERS = Constants.SERVER_IPS
+        self.stub_dict = {
+            "stub": None,
+            "port": None
+        }
+        self.backup_stub_dict = {
+            "stub": None,
+            "port": None
+        }
+        self.SERVERS = Constants.SERVER_IPS.copy()
+
+        self.backup_stub_connect_thread = threading.Thread(target = self.background_connect, daemon=True)
+        self.backup_stub_connect_thread.start()
+
     
-    def connect_stub(self):
-        shuffle_servers = list(self.SERVERS.items())
-        random.shuffle(shuffle_servers)
+    def background_connect(self):
+        while True:
 
-        
+            time.sleep(Constants.BACKGROUND_STUB_REFRESH_RATE)
 
-        for port, host in shuffle_servers:
             try:
-                channel = grpc.insecure_channel(host + ':' + str(port)) 
-                self.stub = exchange_pb2_grpc.ExchangeServiceStub(channel)
-                self.stub.Ping(exchange_pb2.Empty())
-
-                print(f"Client connected to server w/ port {port}")
-                return True
+                self.backup_stub_dict["stub"].Ping(exchange_pb2.Empty())
             except:
-                print(f"Could not connect to {host}:{port}")
+                shuffle_servers = [(port, host) for port, host in self.SERVERS.items() if port != self.stub_dict["port"]]
+                random.shuffle(shuffle_servers)
 
-
+                for port, host in shuffle_servers:
+                    try:
+                        channel = grpc.insecure_channel(host + ':' + str(port)) 
+                        self.backup_stub_dict["stub"] = exchange_pb2_grpc.ExchangeServiceStub(channel)
+                        self.backup_stub_dict["stub"].Ping(exchange_pb2.Empty())
+                        self.backup_stub_dict["port"] = port
+                        break
+                    except:
+                        print(f"Backup could not connect to {host}:{port}")
+            
 
     def connect(self) -> bool:
         shuffle_servers = list(self.SERVERS.items())
@@ -52,27 +69,61 @@ class TwoFaultStub:
         for port, host in shuffle_servers:
             try:
                 channel = grpc.insecure_channel(host + ':' + str(port)) 
-                self.stub = exchange_pb2_grpc.ExchangeServiceStub(channel)
-                self.stub.Ping(exchange_pb2.Empty())
+                self.stub_dict["stub"] = exchange_pb2_grpc.ExchangeServiceStub(channel)
+                self.stub_dict["stub"].Ping(exchange_pb2.Empty())
+                self.stub_dict["port"] = port
 
                 print(f"Client connected to server w/ port {port}")
+
+                self.backup_stub_connect_thread.start()
                 return True
             except:
                 print(f"Could not connect to {host}:{port}")
         
         return False
     
-    
     def __getattr__(self, name):
         def wrapper(*args, **kwargs):
-            for _ in range(3):
+            for _ in range(len(self.SERVERS)):
                 try:
-                    func = getattr(self.stub, name)
+                    func = getattr(self.stub_dict["stub"], name)
                     response = func(*args, **kwargs)
                     return response
                 except grpc.RpcError as e:
                     print(f"An error occurred while calling {name}: {e}")
-                    self.connect()
+                    self.stub_dict, self.backup_stub_dict = self.backup_stub_dict, self.stub_dict
+                    print(f"Client connected to server w/ port {self.stub_dict['port']}")
                     
             print("No servers online")
         return wrapper
+
+class ThreadSafeSet:
+    def __init__(self):
+        self._set = set()
+        self._lock = threading.Lock()
+        self._max = 0
+    
+    def max(self):
+        with self._lock:
+            return self._max
+
+    def add(self, item):
+        with self._lock:
+            self._set.add(item)
+            self._max = max(self._max, item)
+
+    def remove(self, item):
+        with self._lock:
+            self._set.remove(item)
+
+    def __contains__(self, item):
+        with self._lock:
+            return item in self._set
+
+    def __len__(self):
+        with self._lock:
+            return len(self._set)
+        
+    def __iter__(self):
+        with self._lock:
+            return iter(self._set)
