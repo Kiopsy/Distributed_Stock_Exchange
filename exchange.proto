@@ -16,7 +16,8 @@ service ExchangeService {
   // Client (broker) functions
   rpc Ping (Empty) returns (Empty) {}
 
-  // From institutions to exchange
+  // From institutions to exchange 
+  // TODO
   rpc SendOrder(OrderInfo) returns (OrderId) {}
   rpc CancelOrder(OrderId) returns (Result) {}
   rpc GetOrderList(Empty) returns (OrderInfo) {}
@@ -32,7 +33,7 @@ service BrokerService {
   rpc LogOut(Empty) returns (Result) {} // may or may not end up using log in / log out
 
   rpc Register(UserInfo) returns (Result) {}
-  rpc SendOrder(OrderInfo) returns (OrderId) {}
+  rpc SendOrder(OrderInfo) returns (Result) {}
   rpc CancelOrder(CancelRequest) returns (Result) {}
   rpc GetBalance(UserId) returns (Balance) {}
   rpc DepositCash(Deposit) returns (Empty) {}
@@ -80,6 +81,7 @@ message CommitVote {
 
 message Result {
   bool result = 1;
+  string message = 2;
 }
 
 message Empty {}

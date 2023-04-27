@@ -12,8 +12,9 @@ class Order:
         self.timestamp = timestamp
 
 class LimitOrderBook:
-    def __init__(self):
+    def __init__(self, ticker = "Not set yet"):
         # TODO: REPLICATE THIS
+        self.ticker = ticker
         self.bids = []
         self.asks = []
         heapq.heapify(self.bids)
@@ -27,8 +28,10 @@ class LimitOrderBook:
         elif side == 'ask':
             # lowest ask to the top
             heapq.heappush(self.asks, (price, order.timestamp, order))
-        self.match_orders()
-        self.display()
+        return self.match_orders()
+        
+        # self.display()
+        # Return a list of all the matched/filled orders with the users that were matched 
 
     def cancel_order(self, side, price, user):
         if side == 'bid':
@@ -55,6 +58,9 @@ class LimitOrderBook:
     # TODO If we want, we can allow shorting/negative amounts of stock or money (negative money is like margin/borrowing money). But, I didn't allow shorting or margin because IMO this is more realistic for a simple stock exchange (in practice, margin and shorting is complicated). Prevent orders from being executed if a user does not have enough money to buy the stock or enough stock to sell. also check multiple order levels to see if the order can be filled and execute all crossing levels
     def match_orders(self):
         """Prevent orders from being executed if a user does not have enough money to buy the stock or enough stock to sell. also check multiple order levels to see if the order can be filled and execute all crossing levels"""
+        
+        filled_orders = []
+        
         # If the top bid and ask are not enough to fill the order size, we need to loop at look at the next highest bid or next lowest ask and see if those cross the order price, until we fill the entire order size or the bids or asks no longer cross. TODO: check that this works correctly
         while self.bids and self.asks:
             bid = self.bids[0][2]
@@ -64,12 +70,12 @@ class LimitOrderBook:
                 executed_quantity = min(bid.quantity, ask.quantity)
                 execution_price = (bid.price + ask.price) / 2
 
-                # Check if users have enough balance and stocks for the transaction
-                if bid.user.balance < executed_quantity * execution_price or ask.user.stocks < executed_quantity:
-                    # TODO: better error handling? what do we do with the order that was not executed?
-                    print("Error: User does not have enough balance or stocks to execute order.")
-                    break
-                # TODO - should we just allow shorting/negative amounts of stock or money because then we don't have to worry about this?
+                # # Check if users have enough balance and stocks for the transaction
+                # if bid.user.balance < executed_quantity * execution_price or ask.user.stocks < executed_quantity:
+                #     # TODO: better error handling? what do we do with the order that was not executed?
+                #     print("Error: User does not have enough balance or stocks to execute order.")
+                #     break
+                # # TODO - should we just allow shorting/negative amounts of stock or money because then we don't have to worry about this?
                 
                 bid.user.balance += -executed_quantity * execution_price
                 bid.user.stocks += executed_quantity
@@ -78,6 +84,8 @@ class LimitOrderBook:
 
                 bid.quantity -= executed_quantity
                 ask.quantity -= executed_quantity
+                
+                filled_orders.append((bid.user, ask.user, execution_price, executed_quantity))
 
                 if bid.quantity == 0:
                     heapq.heappop(self.bids)
@@ -92,6 +100,8 @@ class LimitOrderBook:
 
             else:
                 break
+            
+        return filled_orders
 
     def display(self):
         print("Bids:")

@@ -31,7 +31,7 @@ class Database():
                 self.db = pickle.load(dbfile)
         except:
             self.db = {
-                "orderbooks" : defaultdict(LimitOrderBook),
+                "orderbooks" : defaultdict(LimitOrderBook()),
                 "client_balance": {client: 0 for client in c.USER_KEYS}
             }
         return self.db

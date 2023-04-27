@@ -298,9 +298,13 @@ class ExchangeServer(ExchangeServiceServicer):
         # retreive orderbook associated with the stock's ticker
         book = self.db.get_db()["orderbooks"][ticker]
         
+        # PAXOS
         res = book.add_order(side, price, quantity, uid) # after matches are made 
 
-        self.db.get_db()["orderbooks"][ticker] = book
+
+        # match orders
+
+        # then change: self.order_fills = ...
 
     # WIP
     # rpc func "CancelOrder": 
