@@ -49,9 +49,9 @@ class ExchangeServer(ExchangeServiceServicer):
         self.stop_event = threading.Event()
 
         # init commit log file
-        if not os.path.exists(c.LOGS_DIR):
-            os.makedirs(c.LOGS_DIR)
-        self.LOG_FILE_NAME = f"./{c.LOGS_DIR}/server{self.ID}.log"
+        if not os.path.exists(c.LOG_DIR):
+            os.makedirs(c.LOG_DIR)
+        self.LOG_FILE_NAME = f"./{c.LOG_DIR}/server{self.ID}.log"
         self.log_file = open(self.LOG_FILE_NAME , "w")
 
         # init pkl file
@@ -174,6 +174,13 @@ class ExchangeServer(ExchangeServiceServicer):
     # rpc func "RequestHeartbeat": takes Empty as input and retuns its port
     def RequestHeartbeat(self, request, context):
         return exchange_pb2.HeartbeatResponse(port=self.PORT)
+<<<<<<< HEAD
+    
+    # func "revive": revive's a server based on the primary's commit log
+    def revive(self, revive_info):
+        pass
+=======
+>>>>>>> cb2cf89ae6b0966ba7213899fa604a506594ade6
 
     # CONSENSUS VOTING SECTION
 
