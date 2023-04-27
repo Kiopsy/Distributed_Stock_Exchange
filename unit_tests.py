@@ -8,7 +8,7 @@ class unit_tests(unittest.TestCase):
 
     def test_exchange_connection(self):
         # TODO
-        pass 
+        pass
 
     def test_paxos_consensus(self):
         # TODO

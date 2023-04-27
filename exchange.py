@@ -48,9 +48,9 @@ class ExchangeServer(ExchangeServiceServicer):
         self.stop_event = threading.Event()
 
         # init commit log file
-        if not os.path.exists(c.LOGS_DIR):
-            os.makedirs(c.LOGS_DIR)
-        self.LOG_FILE_NAME = f"./{c.LOGS_DIR}/server{self.ID}.log"
+        if not os.path.exists(c.LOG_DIR):
+            os.makedirs(c.LOG_DIR)
+        self.LOG_FILE_NAME = f"./{c.LOG_DIR}/server{self.ID}.log"
         self.log_file = open(self.LOG_FILE_NAME , "w")
 
         # init pkl file
@@ -154,7 +154,7 @@ class ExchangeServer(ExchangeServiceServicer):
         return exchange_pb2.HeartbeatResponse(port=self.PORT)
     
     # func "revive": revive's a server based on the primary's commit log
-    def revive(self, revive_info: ):
+    def revive(self, revive_info):
         pass
 
     # func "leader_election": uses the bully algorithm to elect the machine with the lowest port as the leader
