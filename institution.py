@@ -24,3 +24,4 @@ class Institution():
 if __name__ == "__main__":
     institution = Institution()
     threading.Thread(target=institution.receive_pings).start()
+

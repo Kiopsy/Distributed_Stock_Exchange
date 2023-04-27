@@ -1,9 +1,9 @@
 import socket, threading, time, grpc, pickle, os
 import exchange_pb2 as exchange_pb2
 from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_ExchangeServiceServicer_to_server
-from helpers import ThreadSafeSet, Constants as c
+from helpers import ThreadSafeSet
+from constants import Constants as c
 from concurrent import futures
-from collections import defaultdict
 from limit_order_book import LimitOrderBook, User
 from database import Database
 
@@ -174,13 +174,10 @@ class ExchangeServer(ExchangeServiceServicer):
     # rpc func "RequestHeartbeat": takes Empty as input and retuns its port
     def RequestHeartbeat(self, request, context):
         return exchange_pb2.HeartbeatResponse(port=self.PORT)
-<<<<<<< HEAD
     
     # func "revive": revive's a server based on the primary's commit log
     def revive(self, revive_info):
         pass
-=======
->>>>>>> cb2cf89ae6b0966ba7213899fa604a506594ade6
 
     # CONSENSUS VOTING SECTION
 
@@ -283,9 +280,34 @@ class ExchangeServer(ExchangeServiceServicer):
     def SendOrder(self, request, context):
         pass
 
+    # rpc func "CancelOrder": 
+    @connection_required
+    def CancelOrder(self, request, context):
+        pass
+    
+    # rpc func "SendOrder": 
+    @connection_required
+    def GetOrderList(self, request, context):
+        pass
+
+    # rpc func "DepositCash": 
+    @connection_required
+    def DepositCash(self, request, context):
+        pass
+
+    # rpc func "Ping": 
     @connection_required
     def Ping(self, request, context):
         return exchange_pb2.Empty()
+
+    // From institutions to exchange
+  rpc SendOrder(OrderInfo) returns (OrderId) {}
+  rpc CancelOrder(OrderId) returns (Result) {}
+  rpc GetOrderList(Empty) returns (OrderInfo) {}
+  rpc DepositCash(Deposit) returns (Empty) {}
+
+  // From exchange to institutions, brokers
+  rpc OrderFill(UserInfo) returns (FillInfo) {}
     
     """
     1.  Copy/paste paxos algo and make it work with our current DB (not 

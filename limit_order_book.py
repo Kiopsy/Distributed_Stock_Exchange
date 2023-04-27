@@ -22,8 +22,10 @@ class LimitOrderBook:
     def add_order(self, side, price, quantity, user):
         order = Order(user, price, quantity, datetime.now())
         if side == 'bid':
-            heapq.heappush(self.bids, (-price, order.timestamp, order))
+            # highest bid to the top: sorts by price then timestamp
+            heapq.heappush(self.bids, (-price, order.timestamp, order)) 
         elif side == 'ask':
+            # lowest ask to the top
             heapq.heappush(self.asks, (price, order.timestamp, order))
         self.match_orders()
         self.display()
