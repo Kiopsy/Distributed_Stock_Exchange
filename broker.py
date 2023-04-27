@@ -26,7 +26,6 @@ class Broker(BrokerServiceServicer):
         if self.stub.connect():
             self.stub.backup_stub_connect_thread.start()
         
-
     def Register(self, request, context):
         if request.uid in self.uid_to_balance.keys():
             return exchange_pb2.Result(result=False)

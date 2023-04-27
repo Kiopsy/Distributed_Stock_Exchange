@@ -288,7 +288,7 @@ class ExchangeServer(ExchangeServiceServicer):
     # rpc func "SendOrder": push an order to the orderbooks, make matches if possible
     @connection_required
     def SendOrder(self, request, context):
-        # retreive the order
+        # retrieve the order
         ticker = request.ticker
         quantity = request.quantity
         price = request.price
@@ -307,10 +307,11 @@ class ExchangeServer(ExchangeServiceServicer):
     @connection_required
     def CancelOrder(self, request, context) -> exchange_pb2.Result:
         # request = exchange_pb2.OrderId
-        pass
+        return exchange_pb2.Result(result=True)
     
     # WIP
     # rpc func "GetOrderList": 
+    # could probably skip this for now tbh
     @connection_required
     def GetOrderList(self, request, context) -> exchange_pb2.OrderInfo:
         # request = exchange_pb2.Empty
@@ -336,9 +337,7 @@ class ExchangeServer(ExchangeServiceServicer):
     @connection_required
     def OrderFill(self, request, context) -> exchange_pb2.FillInfo:
         pass
-        # request = exchange_pb2.UserInfo
 
-    # WIP
     # rpc func "Ping": 
     @connection_required
     def Ping(self, request, context):

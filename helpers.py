@@ -124,3 +124,16 @@ class ThreadSafeSet:
     def __iter__(self):
         with self._lock:
             return iter(self._set)
+
+
+def state_machine_encoder(operation, keys, value = None, value_type = None):
+    return operation + c.DIVIDER + str(keys) + c.DIVIDER + str(value) + c.DIVIDER + str(value_type)
+
+def state_machine_decoder(encoded_str):
+    operation, keys, value, value_type = encoded_str
+
+    operation = int(operation)
+    keys = exec(keys)
+    value = exec(value_type)(value)
+
+    return operation, keys, value

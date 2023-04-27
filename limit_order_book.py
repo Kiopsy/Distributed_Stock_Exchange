@@ -84,9 +84,11 @@ class LimitOrderBook:
                 if ask.quantity == 0:
                     heapq.heappop(self.asks)
 
+                """
                 print(f"\nOrder executed: {executed_quantity} shares at ${execution_price:.2f}")
                 print(f"{bid.user.username} new balance: ${bid.user.balance:.2f}, stocks: {bid.user.stocks}")
                 print(f"{ask.user.username} new balance: ${ask.user.balance:.2f}, stocks: {ask.user.stocks}")
+                """
 
             else:
                 break
