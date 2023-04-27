@@ -49,7 +49,7 @@ class ExchangeServiceStub(object):
                 request_serializer=exchange__pb2.OrderId.SerializeToString,
                 response_deserializer=exchange__pb2.Result.FromString,
                 )
-        self.GetOrderList = channel.unary_stream(
+        self.GetOrderList = channel.unary_unary(
                 '/exchange.ExchangeService/GetOrderList',
                 request_serializer=exchange__pb2.Empty.SerializeToString,
                 response_deserializer=exchange__pb2.OrderInfo.FromString,
@@ -57,12 +57,12 @@ class ExchangeServiceStub(object):
         self.DepositCash = channel.unary_unary(
                 '/exchange.ExchangeService/DepositCash',
                 request_serializer=exchange__pb2.Deposit.SerializeToString,
-                response_deserializer=exchange__pb2.Empty.FromString,
+                response_deserializer=exchange__pb2.Result.FromString,
                 )
         self.OrderFill = channel.unary_unary(
                 '/exchange.ExchangeService/OrderFill',
-                request_serializer=exchange__pb2.Empty.SerializeToString,
-                response_deserializer=exchange__pb2.OrderInfo.FromString,
+                request_serializer=exchange__pb2.UserInfo.SerializeToString,
+                response_deserializer=exchange__pb2.FillInfo.FromString,
                 )
 
 
@@ -172,7 +172,7 @@ def add_ExchangeServiceServicer_to_server(servicer, server):
                     request_deserializer=exchange__pb2.OrderId.FromString,
                     response_serializer=exchange__pb2.Result.SerializeToString,
             ),
-            'GetOrderList': grpc.unary_stream_rpc_method_handler(
+            'GetOrderList': grpc.unary_unary_rpc_method_handler(
                     servicer.GetOrderList,
                     request_deserializer=exchange__pb2.Empty.FromString,
                     response_serializer=exchange__pb2.OrderInfo.SerializeToString,
@@ -180,12 +180,12 @@ def add_ExchangeServiceServicer_to_server(servicer, server):
             'DepositCash': grpc.unary_unary_rpc_method_handler(
                     servicer.DepositCash,
                     request_deserializer=exchange__pb2.Deposit.FromString,
-                    response_serializer=exchange__pb2.Empty.SerializeToString,
+                    response_serializer=exchange__pb2.Result.SerializeToString,
             ),
             'OrderFill': grpc.unary_unary_rpc_method_handler(
                     servicer.OrderFill,
-                    request_deserializer=exchange__pb2.Empty.FromString,
-                    response_serializer=exchange__pb2.OrderInfo.SerializeToString,
+                    request_deserializer=exchange__pb2.UserInfo.FromString,
+                    response_serializer=exchange__pb2.FillInfo.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -327,7 +327,7 @@ class ExchangeService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(request, target, '/exchange.ExchangeService/GetOrderList',
+        return grpc.experimental.unary_unary(request, target, '/exchange.ExchangeService/GetOrderList',
             exchange__pb2.Empty.SerializeToString,
             exchange__pb2.OrderInfo.FromString,
             options, channel_credentials,
@@ -346,7 +346,7 @@ class ExchangeService(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/exchange.ExchangeService/DepositCash',
             exchange__pb2.Deposit.SerializeToString,
-            exchange__pb2.Empty.FromString,
+            exchange__pb2.Result.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -362,8 +362,8 @@ class ExchangeService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/exchange.ExchangeService/OrderFill',
-            exchange__pb2.Empty.SerializeToString,
-            exchange__pb2.OrderInfo.FromString,
+            exchange__pb2.UserInfo.SerializeToString,
+            exchange__pb2.FillInfo.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -414,8 +414,8 @@ class BrokerServiceStub(object):
                 )
         self.OrderFill = channel.unary_unary(
                 '/exchange.BrokerService/OrderFill',
-                request_serializer=exchange__pb2.Empty.SerializeToString,
-                response_deserializer=exchange__pb2.OrderInfo.FromString,
+                request_serializer=exchange__pb2.UserInfo.SerializeToString,
+                response_deserializer=exchange__pb2.FillInfo.FromString,
                 )
 
 
@@ -512,8 +512,8 @@ def add_BrokerServiceServicer_to_server(servicer, server):
             ),
             'OrderFill': grpc.unary_unary_rpc_method_handler(
                     servicer.OrderFill,
-                    request_deserializer=exchange__pb2.Empty.FromString,
-                    response_serializer=exchange__pb2.OrderInfo.SerializeToString,
+                    request_deserializer=exchange__pb2.UserInfo.FromString,
+                    response_serializer=exchange__pb2.FillInfo.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -656,7 +656,7 @@ class BrokerService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/exchange.BrokerService/OrderFill',
-            exchange__pb2.Empty.SerializeToString,
-            exchange__pb2.OrderInfo.FromString,
+            exchange__pb2.UserInfo.SerializeToString,
+            exchange__pb2.FillInfo.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

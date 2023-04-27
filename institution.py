@@ -1,7 +1,7 @@
 import socket, threading, time, grpc, os
 import exchange_pb2
 from exchange_pb2_grpc import BrokerServiceServicer, BrokerServiceStub, add_BrokerServiceServicer_to_server
-from helpers import Constants as c
+import constants as c
 from helpers import TwoFaultStub
 from typing import Dict, List, Tuple
 from concurrent import futures

@@ -1,5 +1,5 @@
 import grpc, sys, signal, multiprocessing, time, socket
-from helpers import Constants as c
+import constants as c
 from concurrent import futures
 import exchange_pb2 as exchange_pb2
 from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_ExchangeServiceServicer_to_server

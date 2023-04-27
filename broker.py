@@ -1,17 +1,18 @@
 import socket, threading, time, grpc, os
 import exchange_pb2
 from exchange_pb2_grpc import BrokerServiceServicer, add_BrokerServiceServicer_to_server
-from constants import Constants as c
+import constants as c
 from helpers import nFaultStub
 from typing import Dict, List, Tuple, Set, Deque
 from concurrent import futures
 from collections import deque
+import exchange_pb2_grpc
 
 FEE = 1
 
 class Broker(BrokerServiceServicer):
     def __init__(self) -> None:
-        self.uid = 1
+        self.uid = c.USER_KEYS[0]
         self.uid_to_balance: Dict[int, int] = {}
         self.uid_to_tickers_to_amounts: Dict[int, List[Tuple[str, int]]] = {}
         self.uid_to_oids: Dict[int, Set[int]] = {} # user id to order ids
@@ -20,9 +21,11 @@ class Broker(BrokerServiceServicer):
 
         self.broker_balance = 10000 # the broker has $100 (10k cents) to cover fees
         self.held_stocks = []
-        self.stub = nFaultStub()
-        self.stub.connect()
-        self.stub.DepositCash(self.broker_balance)
+        channel = grpc.insecure_channel('10.228.153.249:' + str(50050)) 
+        self.stub = exchange_pb2_grpc.ExchangeServiceStub(channel)
+        # print("connected?", self.stub.connect())
+        # self.stub.backup_stub_connect_thread.start()
+        self.stub.DepositCash(exchange_pb2.Deposit(uid=0, amount=100))
 
     def Register(self, request, context):
         if request.uid in self.uid_to_balance.keys():
@@ -41,7 +44,8 @@ class Broker(BrokerServiceServicer):
             return exchange_pb2.Empty()
         self.uid_to_balance[request.uid] += request.amount
         # Deposit enough cash with exchange to cover any user transactions
-        return self.stub.DepositCash(request.amount)
+        self.stub.DepositCash(request.amount)
+        return exchange_pb2.Empty()
 
     def SendOrder(self, request, context):
         if request.OrderType == exchange_pb2.OrderType.BID:
@@ -115,7 +119,7 @@ class Broker(BrokerServiceServicer):
         if request.quantity > quantity_owned:
             return exchange_pb2.OrderId(oid=-1)
         
-        # Send order to the exchange. Once the order is queued, 
+        # Send order to the exchange. Once the order is queued,
         # remove the stocks and charge a fee from the user's account
         response = self.stub.SendOrder(request=request)
 
@@ -130,11 +134,6 @@ class Broker(BrokerServiceServicer):
         self.uid_to_tickers_to_amounts[request.uid][request.ticker] -= quantity_owned
 
         return exchange_pb2.OrderId(oid=response.oid)
-    
-    def receive_pings(self):
-        while True:
-            self.stub.Ping(exchange_pb2.Empty())
-            time.sleep(3)
 
     def receive_fills(self):
         while True:
@@ -146,5 +145,6 @@ class Broker(BrokerServiceServicer):
 
 if __name__ == "__main__":
     broker = Broker()
-    threading.Thread(target=broker.receive_pings).start()
-    threading.Thread(target=broker.receive_fills).start()
+    # threading.Thread(target=broker.receive_fills).start()
+    # deposit a dollar as a test
+    # broker.stub.DepositCash(request=exchange_pb2.Deposit(uid=0, amount=100))

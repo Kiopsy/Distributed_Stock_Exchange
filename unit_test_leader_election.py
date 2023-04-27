@@ -1,6 +1,6 @@
 import unittest
 from exchange import ExchangeServer
-from helpers import Constants as c
+import constants as c
 
 class TestExchangeServer(unittest.TestCase):
 

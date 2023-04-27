@@ -1,11 +1,12 @@
 import socket, threading, time, grpc, pickle, os
-import exchange_pb2 as exchange_pb2
+import exchange_pb2
 from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_ExchangeServiceServicer_to_server
 from helpers import ThreadSafeSet
-from constants import Constants as c
+import constants as c
 from concurrent import futures
 from limit_order_book import LimitOrderBook, User
 from database import Database
+from collections import defaultdict, deque
 
 # func "serve": starts an exchange server
 def serve(id: int) -> None:
@@ -60,10 +61,13 @@ class ExchangeServer(ExchangeServiceServicer):
         self.PKL_FILE_NAME = f"./{c.PKL_DIR}/server{self.ID}.pkl"
         
         # TREAT LIKE A DICTIONARY; load the database (create if it does not exist)
-        self.db = Database(filename=f"./db{self.ID}.pkl")
+        self.db = Database(filename=self.PKL_FILE_NAME)
     
         # thread safe set that tracks if a ballot id has been seen
         self.seen_ballots = ThreadSafeSet()
+
+        # keep track of filled orders. user -> a queue of their filled orders
+        self.order_fills = defaultdict(deque)
 
     # func "sprint": prints within a server
     def sprint(self, *args, **kwargs) -> None:
@@ -124,11 +128,15 @@ class ExchangeServer(ExchangeServiceServicer):
             try:
                 with open(self.LOG_FILE_NAME, 'r') as file:
                     text_data = file.read()
+                with open(self.PKL_FILE_NAME, 'rb') as dbfile:
+                    db_bytes = pickle.dumps(pickle.load(dbfile))
             except:
                 text_data = ""
+                db_bytes = bytes()
             return exchange_pb2.ReviveInfo(
                 primary_port = self.primary_port, 
-                commit_log = text_data, 
+                commit_log = text_data,
+                db_bytes = db_bytes, 
                 updates = True)
         else:
             return exchange_pb2.ReviveInfo(updates = False)
@@ -247,6 +255,7 @@ class ExchangeServer(ExchangeServiceServicer):
             commands = commit.split(c.DIVIDER)
             for cmd in commands:
                 exec(cmd)
+            self.db.store_data()
         else:
             self.sprint("Rejected commit")
 
@@ -275,48 +284,65 @@ class ExchangeServer(ExchangeServiceServicer):
         
         return wrapper
 
-    # rpc func "SendOrder": 
+    # WIP
+    # rpc func "SendOrder": push an order to the orderbooks, make matches if possible
     @connection_required
     def SendOrder(self, request, context):
-        pass
+        # retreive the order
+        ticker = request.ticker
+        quantity = request.quantity
+        price = request.price
+        uid = request.uid
+        side = "bid" if request.type == exchange_pb2.OrderType.BID else "ask"
 
+        # retreive orderbook associated with the stock's ticker
+        book = self.db.get_db()["orderbooks"][ticker]
+        
+        res = book.add_order(side, price, quantity, uid) # after matches are made 
+
+        self.db.get_db()["orderbooks"][ticker] = book
+
+
+
+    # WIP
     # rpc func "CancelOrder": 
     @connection_required
-    def CancelOrder(self, request, context):
+    def CancelOrder(self, request, context) -> exchange_pb2.Result:
+        # request = exchange_pb2.OrderId
         pass
     
-    # rpc func "SendOrder": 
+    # WIP
+    # rpc func "GetOrderList": 
     @connection_required
-    def GetOrderList(self, request, context):
+    def GetOrderList(self, request, context) -> exchange_pb2.OrderInfo:
+        # request = exchange_pb2.Empty
         pass
 
+    # WIP
     # rpc func "DepositCash": 
     @connection_required
-    def DepositCash(self, request, context):
-        pass
+    def DepositCash(self, request, context) -> exchange_pb2.Result:
+        res = False
+        if request.uid in self.db.get_db()["client_balance"]:
+            state_str = f"self.db.get_db()['client_balance'][{request.uid}] += {request.amount}"
+            success = self.vote_on_client_request(state_str)
+            if success:
+                self.db.get_db()["client_balance"][request.uid] += request.amount
+                self.db.store_data()
+                res = True  
+                
+        return exchange_pb2.Result(result = res)
 
+
+    # WIP
+    # rpc func "OrderFill":
+    @connection_required
+    def OrderFill(self, request, context) -> exchange_pb2.FillInfo:
+        pass
+        # request = exchange_pb2.UserInfo
+
+    # WIP
     # rpc func "Ping": 
     @connection_required
     def Ping(self, request, context):
         return exchange_pb2.Empty()
-
-    // From institutions to exchange
-  rpc SendOrder(OrderInfo) returns (OrderId) {}
-  rpc CancelOrder(OrderId) returns (Result) {}
-  rpc GetOrderList(Empty) returns (OrderInfo) {}
-  rpc DepositCash(Deposit) returns (Empty) {}
-
-  // From exchange to institutions, brokers
-  rpc OrderFill(UserInfo) returns (FillInfo) {}
-    
-    """
-    1.  Copy/paste paxos algo and make it work with our current DB (not 
-        sure if it needs to change) [COMPLETED]
-    2.  Start thinking about the state machine and how we read each line from
-        the commit file
-    3.  Write the revive function that takes the commit log from the primary
-        and compares with its own log and revives itself using state machine.
-
-        Do not worry about where exactly paxos will be run. I will implement this
-        when working with Gianni on the receive end of the broker's RPC calls 
-    """

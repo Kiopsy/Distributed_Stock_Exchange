@@ -1,6 +1,7 @@
 from collections import defaultdict
 import pickle
 from limit_order_book import LimitOrderBook
+import constants as c
 
 # simply use this class like it is a dictionary, it will store data automatically
 class Database():
@@ -11,7 +12,6 @@ class Database():
 
     def turn_bytes_into_db(self, b: bytes):
         self.db = pickle.loads(b)
-        self.store_data()
         
     def store_data(self):
         """
@@ -32,29 +32,10 @@ class Database():
         except:
             self.db = {
                 "orderbooks" : defaultdict(LimitOrderBook),
-                "client_balance": defaultdict(int)
+                "client_balance": {client: 0 for client in c.USER_KEYS}
             }
         return self.db
     
-    def __setitem__(self, key, value):
-        self.db[key] = value
-        self.store_data()
-
-    def __delitem__(self, key):
-        del self.db[key]
-        self.store_data()
-    
-    def __getitem__(self, key):
-        return self.db[key]
-
-    def __len__(self):
-        return len(self.db)
-
-    def keys(self):
-        return self.db.keys()
-
-    def values(self):
-        return self.db.values()
-    
-    def items(self):
-        return self.db.items()
+    def get_db(self):
+        return self.db
+   
