@@ -19,23 +19,25 @@ service ExchangeService {
   // From institutions to exchange
   rpc SendOrder(OrderInfo) returns (OrderId) {}
   rpc CancelOrder(OrderId) returns (Result) {}
-  rpc GetOrderList(Empty) returns (stream OrderInfo) {}
+  rpc GetOrderList(Empty) returns (OrderInfo) {}
+  rpc DepositCash(Deposit) returns (Empty) {}
 
   // From exchange to institutions, brokers
-  rpc OrderFill(Empty) returns (OrderInfo) {}
+  rpc OrderFill(UserInfo) returns (FillInfo) {}
 }
 
 service BrokerService {
   // From user to broker
   rpc LogIn(UserInfo) returns (Result) {}
   rpc LogOut(Empty) returns (Result) {} // may or may not end up using log in / log out
+  rpc Register(UserInfo) returns (Result) {}
   rpc SendOrder(OrderInfo) returns (OrderId) {}
   rpc CancelOrder(CancelRequest) returns (Result) {}
   rpc GetBalance(UserId) returns (Balance) {}
   rpc DepositCash(Deposit) returns (Empty) {}
 
   // From broker to user
-  rpc OrderFill(Empty) returns (OrderInfo) {}
+  rpc OrderFill(UserInfo) returns (FillInfo) {}
 }
 
 message Deposit {
@@ -89,6 +91,11 @@ message UserId {
   int32 uid = 1;
 }
 
+message FillInfo {
+  int32 oid = 1;
+  int32 amount_filled = 2;
+}
+
 message OrderInfo {
   string ticker = 1;
   int32 quantity = 2;
@@ -102,6 +109,5 @@ message OrderInfo {
 }
 
 message UserInfo {
-  string username = 1;
-  string password = 2;
+  int32 uid = 1;
 }
