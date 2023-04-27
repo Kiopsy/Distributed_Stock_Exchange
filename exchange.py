@@ -72,7 +72,7 @@ class ExchangeServer(ExchangeServiceServicer):
     # func "sprint": prints within a server
     def sprint(self, *args, **kwargs) -> None:
         if not self.SILENT:
-            print(f"Server {self.ID}", args, kwargs)
+            print(f"Server {self.ID}:", *args, **kwargs)
 
     # func "connect": connect current server to peers servers
     def connect(self) -> bool:
@@ -302,8 +302,6 @@ class ExchangeServer(ExchangeServiceServicer):
 
         self.db.get_db()["orderbooks"][ticker] = book
 
-
-
     # WIP
     # rpc func "CancelOrder": 
     @connection_required
@@ -332,7 +330,6 @@ class ExchangeServer(ExchangeServiceServicer):
                 res = True  
                 
         return exchange_pb2.Result(result = res)
-
 
     # WIP
     # rpc func "OrderFill":

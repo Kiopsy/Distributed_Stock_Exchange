@@ -21,11 +21,11 @@ class Broker(BrokerServiceServicer):
 
         self.broker_balance = 10000 # the broker has $100 (10k cents) to cover fees
         self.held_stocks = []
-        channel = grpc.insecure_channel('10.228.153.249:' + str(50050)) 
-        self.stub = exchange_pb2_grpc.ExchangeServiceStub(channel)
-        # print("connected?", self.stub.connect())
-        # self.stub.backup_stub_connect_thread.start()
-        self.stub.DepositCash(exchange_pb2.Deposit(uid=0, amount=100))
+        
+        self.stub = nFaultStub()
+        if self.stub.connect():
+            self.stub.backup_stub_connect_thread.start()
+        
 
     def Register(self, request, context):
         if request.uid in self.uid_to_balance.keys():
@@ -140,11 +140,15 @@ class Broker(BrokerServiceServicer):
             fill = self.stub.OrderFill(exchange_pb2.UserInfo(uid=self.uid))
             uid = self.oid_to_uid[fill.oid]
             self.uid_to_fills[uid].append((fill.oid, fill.amount_filled))
+            # this is not done yet, need to update the rest of the maps
             time.sleep(0.1) # latency?
     
 
 if __name__ == "__main__":
     broker = Broker()
+    while True:
+        _ = input("[Enter]: ")
+        broker.stub.DepositCash(exchange_pb2.Deposit(uid=0, amount=100))
     # threading.Thread(target=broker.receive_fills).start()
     # deposit a dollar as a test
     # broker.stub.DepositCash(request=exchange_pb2.Deposit(uid=0, amount=100))

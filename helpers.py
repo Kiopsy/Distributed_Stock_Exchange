@@ -20,7 +20,6 @@ class nFaultStub:
         # A thread that constanlty makes sure the backup thread is connected to anotehr available server
         self.backup_stub_connect_thread: threading.Thread = threading.Thread(target = self.background_connect, daemon=True)
 
-    
     def background_connect(self):
         # Every BACKGROUND_STUB_REFRESH_RATE seconds, check if the bg_stub is alive by pinging
         while True:
@@ -44,7 +43,6 @@ class nFaultStub:
                         break
                     except:
                         print(f"Backup could not connect to {host}:{port}")
-            
 
     def connect(self) -> bool:
 
@@ -61,14 +59,15 @@ class nFaultStub:
                     self.stub_dict["stub"] = exchange_pb2_grpc.ExchangeServiceStub(channel)
                     self.stub_dict["stub"].Ping(exchange_pb2.Empty())
                     self.stub_dict["port"] = port
+                    print(f"Main stub connected to server w/ port {port}")
                 else:
                     self.backup_stub_dict["stub"] = exchange_pb2_grpc.ExchangeServiceStub(channel)
                     self.backup_stub_dict["stub"].Ping(exchange_pb2.Empty())
                     self.backup_stub_dict["port"] = port
+                    print(f"Backup stub connected to server w/ port {port}")
                 
                 # If both are connected return true
                 if self.stub_dict["port"] and self.backup_stub_dict["port"]:
-                    print(f"Client connected to server w/ port {self.stub_dict['port']}")
                     return True
             except:
                 print(f"Could not connect to {host}:{port}")
@@ -86,12 +85,13 @@ class nFaultStub:
                     response = func(*args, **kwargs)
                     return response
                 except Exception as e: # On any failure, switch stub and backup stub
-                    print(f"An error occurred while calling {name}: {e}")
+                    print(f"An error occurred while calling {name}")
                     self.stub_dict, self.backup_stub_dict = self.backup_stub_dict, self.stub_dict
                     if i != len(self.SERVERS) - 1:
                         print(f"Switching to backup connected to port {self.stub_dict['port']}")
-                    
-            print("No servers online")
+                    else:
+                        print("No servers online")
+
         return wrapper
 
 class ThreadSafeSet:
