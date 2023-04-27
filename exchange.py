@@ -271,7 +271,6 @@ class ExchangeServer(ExchangeServiceServicer):
         
         return wrapper
 
-    
     # rpc func "SendOrder": 
     @connection_required
     def SendOrder(self, request, context):

@@ -11,6 +11,7 @@ FEE = 1
 
 class Broker(BrokerServiceServicer):
     def __init__(self) -> None:
+        self.uid = 1
         self.uid_to_balance: Dict[int, int] = {}
         self.uid_to_tickers_to_amounts: Dict[int, List[Tuple[str, int]]] = {}
         self.uid_to_oids: Dict[int, Set[int]] = {} # user id to order ids
@@ -137,7 +138,7 @@ class Broker(BrokerServiceServicer):
 
     def receive_fills(self):
         while True:
-            fill = self.stub.OrderFill(exchange_pb2.Empty())
+            fill = self.stub.OrderFill(exchange_pb2.UserInfo(uid=self.uid))
             uid = self.oid_to_uid[fill.oid]
             self.uid_to_fills[uid].append((fill.oid, fill.amount_filled))
             time.sleep(0.1) # latency?
