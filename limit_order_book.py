@@ -55,26 +55,28 @@ class LimitOrderBook:
         return cancelled
     
     
-    def cancel_order_by_oid(self, side, price, uid):
-        if side == 'bid':
-            target_book = self.bids
-        elif side == 'ask':
-            target_book = self.asks
-        cancelled = False 
-        # Albert: note that this cancels all orders in a price level for a uid, not canceling a specific order because we don't have order-ids. I think this is fine
-        # Albert: i think we do cancel all those orders successfully. I think this behavior is okay.
-        i = 0
-        while i < len(target_book): 
-            if target_book[i][2].price == price and target_book[i][2].uid == uid:
-                del target_book[i]
-                heapq.heapify(target_book)
-                cancelled = True
-                i = 0  
-            else:
-                i += 1
-        self.display()
-        return cancelled
+    def cancel_order_by_oid(self, cancel_oid):
+        new_bids = [] 
+        # Iterate through all nodes in the heap
+        while self.bids:
+            bid = heapq.heappop(self.bids)
+            if bid.oid != cancel_oid:
+                # If the node doesn't match the 'oid', add it to the new heap
+                heapq.heappush(new_bids, bid)
+
+        # Replace the original heap with the new heap
+        self.bids[:] = new_bids[:]
     
+        new_asks = [] 
+        # Iterate through all nodes in the heap
+        while self.asks:
+            ask = heapq.heappop(self.asks)
+            if ask.oid != cancel_oid:
+                # If the node doesn't match the 'oid', add it to the new heap
+                heapq.heappush(new_asks, ask)
+
+        # Replace the original heap with the new heap
+        self.asks[:] = new_asks[:]
 
     # The margin/shorting system we use is 0 interest, loans are settled at time = infinity, so it's a "valid" margin/shorting system. Allows people to have negative amounts of balance/money and stock. 
     def match_orders(self):

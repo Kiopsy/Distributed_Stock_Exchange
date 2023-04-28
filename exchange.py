@@ -337,6 +337,8 @@ class ExchangeServer(ExchangeServiceServicer):
     @connection_required
     def CancelOrder(self, request, context) -> exchange_pb2.Result:
         # request = exchange_pb2.OrderId
+        if request.oid
+        cancel_order_by_oid(self, cancel_oid)
         return exchange_pb2.Result(result=True)
     
     # WIP
@@ -366,17 +368,22 @@ class ExchangeServer(ExchangeServiceServicer):
     # rpc func "OrderFill":
     @connection_required
     def OrderFill(self, request, context) -> exchange_pb2.FillInfo:
-        result = exchange_pb2.FillInfo(oid=-1, 
-                                       amount_filled=-1, 
-                                       execution_price=-1)
+        failure = exchange_pb2.FillInfo(oid=-1, 
+                                        amount_filled=-1, 
+                                        execution_price=-1)
+
         if request.uid not in self.uid_to_user_dict.keys():
-            return result
+            return failure
         
         user = self.uid_to_user_dict[request.uid]
         if len(user.filled_oids) == 0:
-            return result
+            return failure 
         
-        
+        oid, execution_price, quantity = user.filled_oids.popleft()
+
+        return exchange_pb2.FillInfo(oid=oid, 
+                                     amount_filled=quantity, 
+                                     execution_price=execution_price)
 
     # rpc func "Ping": allows client to 
     @connection_required
