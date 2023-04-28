@@ -13,6 +13,7 @@ class Order:
 
 class LimitOrderBook:
     def __init__(self, ticker = "Not set yet"):
+        # self.filled_orders = deque()
         self.ticker = ticker
         self.bids = []
         self.asks = []

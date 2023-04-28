@@ -78,6 +78,9 @@ class ExchangeServer(ExchangeServiceServicer):
 
         for uid in c.USER_KEYS:
             self.uid_to_user_dict.update(uid, User(uid, balance=0))
+        
+            
+        self.filled_orders = deque()
 
     # func "sprint": prints within a server
     def sprint(self, *args, **kwargs) -> None:
@@ -311,14 +314,19 @@ class ExchangeServer(ExchangeServiceServicer):
         # add order to the book and match orders
         filled_orders = book.add_order(side, price, quantity, uid)
         
+        self.filled_orders.extend(filled_orders)
+        
         for filled_order in filled_orders:
-            bid_uid, ask_uid, execution_price, executed_quantity = filled_order[0], filled_order[1], filled_order[2], filled_order[3]
+            bid_uid, ask_uid, execution_price, executed_quantity, bid_oid, ask_oid = filled_order[0], filled_order[1], filled_order[2], filled_order[3]
             
             self.uid_to_user_dict[bid_uid].balance -= executed_quantity * execution_price
             self.uid_to_user_dict[bid_uid].ticker_to_amount[ticker] += executed_quantity
+            self.uid_to_user_dict[bid_uid].filled_oids.append((bid_oid, execution_price, executed_quantity))
             
             self.uid_to_user_dict[ask_uid].balance += executed_quantity * execution_price
             self.uid_to_user_dict[ask_uid].ticker_to_amount[ticker] -= executed_quantity
+            self.uid_to_user_dict[ask_uid].filled_oids.append((ask_oid, execution_price, executed_quantity))
+        
         
         # (bid.user, ask.user, execution_price, executed_quantity)
 
