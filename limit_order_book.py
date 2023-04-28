@@ -76,8 +76,8 @@ class LimitOrderBook:
                 # ask.uid.balance += executed_quantity * execution_price
                 # ask.uid.stocks += -executed_quantity
 
-                # bid.quantity -= executed_quantity
-                # ask.quantity -= executed_quantity
+                bid.quantity -= executed_quantity
+                ask.quantity -= executed_quantity
                 
                 filled_orders.append((bid.uid, ask.uid, execution_price, executed_quantity))
 
