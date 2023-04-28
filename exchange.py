@@ -366,17 +366,17 @@ class ExchangeServer(ExchangeServiceServicer):
     # rpc func "OrderFill":
     @connection_required
     def OrderFill(self, request, context) -> exchange_pb2.FillInfo:
+        result = exchange_pb2.FillInfo(oid=-1, 
+                                       amount_filled=-1, 
+                                       execution_price=-1)
         if request.uid not in self.uid_to_user_dict.keys():
-            result = exchange_pb2.FillInfo(oid=-1, 
-                                         amount_filled=-1, 
-                                         execution_price=-1)
-            return exchange_pb2.FillInfo(oid=-1, 
-                                         amount_filled=-1, 
-                                         execution_price=-1)
+            return result
         
         user = self.uid_to_user_dict[request.uid]
         if len(user.filled_oids) == 0:
-            r
+            return result
+        
+        
 
     # rpc func "Ping": allows client to 
     @connection_required

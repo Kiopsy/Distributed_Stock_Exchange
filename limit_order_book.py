@@ -34,7 +34,7 @@ class LimitOrderBook:
         # self.display()
         # Return a list of all the matched/filled orders with the uids that were matched 
 
-    def cancel_order(self, side, price, uid):
+    def cancel_order_by_price(self, side, price, uid):
         if side == 'bid':
             target_book = self.bids
         elif side == 'ask':
@@ -53,6 +53,28 @@ class LimitOrderBook:
                 i += 1
         self.display()
         return cancelled
+    
+    
+    def cancel_order_by_oid(self, side, price, uid):
+        if side == 'bid':
+            target_book = self.bids
+        elif side == 'ask':
+            target_book = self.asks
+        cancelled = False 
+        # Albert: note that this cancels all orders in a price level for a uid, not canceling a specific order because we don't have order-ids. I think this is fine
+        # Albert: i think we do cancel all those orders successfully. I think this behavior is okay.
+        i = 0
+        while i < len(target_book): 
+            if target_book[i][2].price == price and target_book[i][2].uid == uid:
+                del target_book[i]
+                heapq.heapify(target_book)
+                cancelled = True
+                i = 0  
+            else:
+                i += 1
+        self.display()
+        return cancelled
+    
 
     # The margin/shorting system we use is 0 interest, loans are settled at time = infinity, so it's a "valid" margin/shorting system. Allows people to have negative amounts of balance/money and stock. 
     def match_orders(self):
