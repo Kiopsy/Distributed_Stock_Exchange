@@ -79,8 +79,7 @@ class ExchangeServer(ExchangeServiceServicer):
         for uid in c.USER_KEYS:
             self.uid_to_user_dict.update(uid, User(uid, balance=0))
         
-            
-        self.filled_orders = deque()
+        self.oid_count = 0
 
     # func "sprint": prints within a server
     def sprint(self, *args, **kwargs) -> None:
@@ -312,7 +311,10 @@ class ExchangeServer(ExchangeServiceServicer):
         book = self.db.get_db()["orderbooks"][ticker]
         
         # add order to the book and match orders
-        filled_orders = book.add_order(side, price, quantity, uid)
+        new_oid = self.oid_count
+        self.oid_count += 1
+        
+        filled_orders = book.add_order(side, price, quantity, uid, new_oid)
         
         self.filled_orders.extend(filled_orders)
         
@@ -327,11 +329,8 @@ class ExchangeServer(ExchangeServiceServicer):
             self.uid_to_user_dict[ask_uid].ticker_to_amount[ticker] -= executed_quantity
             self.uid_to_user_dict[ask_uid].filled_oids.append((ask_oid, execution_price, executed_quantity))
         
+        return exchange_pb2.OrderId(oid=new_oid)
         
-        # (bid.user, ask.user, execution_price, executed_quantity)
-
-
-        # then change: self.order_fills = ...
 
     # WIP
     # rpc func "CancelOrder": 

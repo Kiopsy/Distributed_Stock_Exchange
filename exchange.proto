@@ -104,6 +104,7 @@ message UserId {
 message FillInfo {
   int32 oid = 1;
   int32 amount_filled = 2;
+  int32 execution_price = 3;
 }
 
 message OrderInfo {

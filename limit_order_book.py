@@ -20,7 +20,7 @@ class LimitOrderBook:
         heapq.heapify(self.bids)
         heapq.heapify(self.asks)
 
-    def add_order(self, side, price, quantity, uid):
+    def add_order(self, side, price, quantity, uid, new_oid):
         order = Order(uid, price, quantity, datetime.now())
         if side == 'bid':
             # highest bid to the top: sorts by price then timestamp
