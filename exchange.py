@@ -332,7 +332,7 @@ class ExchangeServer(ExchangeServiceServicer):
             
             self.uid_to_user_dict[ask_uid].balance += executed_quantity * execution_price
             self.uid_to_user_dict[ask_uid].ticker_to_amount[ticker] -= executed_quantity
-            self.uid_to_user_dict[ask_uid].filled_oids.append((ask_oid, execution_price, executed_quantity)
+            self.uid_to_user_dict[ask_uid].filled_oids.append((ask_oid, execution_price, executed_quantity))
 
         return exchange_pb2.OrderId(oid=new_oid)
         
@@ -347,12 +347,12 @@ class ExchangeServer(ExchangeServiceServicer):
         if request.oid not in self.oid_to_ticker.keys():
             return exchange_pb2.Result(result=False)
 
-        ticker = self.oid_to_ticker[new_oid]
+        ticker = self.oid_to_ticker[request.oid]
         book = self.db.get_db()["orderbooks"][ticker]
-        result = book.cancel_order_by_oid(cancel_oid)
+        result = book.cancel_order_by_oid(request.oid)
         return exchange_pb2.Result(result=result)
     
-    # WIP
+    # WIP TODO
     # rpc func "GetOrderList": 
     # could probably skip this for now tbh
     @connection_required
