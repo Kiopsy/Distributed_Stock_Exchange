@@ -74,6 +74,13 @@ class ExchangeServer(ExchangeServiceServicer):
         if not self.SILENT:
             print(f"Server {self.ID}:", *args, **kwargs)
 
+    # func "stop_server": stop the machine's heartbeat by setting stop_event
+    def stop_server(self):
+        self.stop_event.set() 
+        self.heartbeat_thread.join()
+
+    # (RE)CONNECTION SECTION
+
     # func "connect": connect current server to peers servers
     def connect(self) -> bool:
         if not self.connected:
@@ -95,6 +102,7 @@ class ExchangeServer(ExchangeServiceServicer):
                     self.sprint("Received Error in Connect:", e)
                     self.peer_alive[port] = False
 
+        # run a leader election if the server has no primary
         if self.primary_port == -1:
             self.leader_election()
 
@@ -102,7 +110,7 @@ class ExchangeServer(ExchangeServiceServicer):
         self.sprint("Connected", self.peer_alive)
         return self.connected
     
-    # func "revive": incorporate the receieved revive info
+    # func "revive": revive's a server based on the primary's commit log
     def revive(self, revive_info: exchange_pb2.ReviveInfo) -> None:
         self.primary_port = revive_info.primary_port
 
@@ -140,15 +148,8 @@ class ExchangeServer(ExchangeServiceServicer):
                 updates = True)
         else:
             return exchange_pb2.ReviveInfo(updates = False)
-
+    
     # HEARTBEAT SECTION
-
-    # func "leader_election": uses the bully algorithm to elect the machine with the lowest port as the leader
-    def leader_election(self) -> int:
-        alive_ports = (port for port, alive in [*self.peer_alive.items(), (self.PORT, True)] if alive)
-        self.primary_port = min(alive_ports)
-        self.sprint(f"New primary: {self.primary_port}")
-        return self.primary_port
     
     # func "receive_heartbeat": ask all other machines if they are alive by asking of
     def receive_heartbeat(self) -> None:
@@ -174,20 +175,18 @@ class ExchangeServer(ExchangeServiceServicer):
         for port in self.peer_stubs:
             threading.Thread(target = individual_heartbeat, args=(port, ), daemon=True).start()
 
-    # func "stop_machine": stop the machine's heartbeat by setting stop_event
-    def stop_machine(self):
-        self.stop_event.set() 
-        self.heartbeat_thread.join()
-
     # rpc func "RequestHeartbeat": takes Empty as input and retuns its port
     def RequestHeartbeat(self, request, context):
         return exchange_pb2.HeartbeatResponse(port=self.PORT)
-    
-    # func "revive": revive's a server based on the primary's commit log
-    def revive(self, revive_info):
-        pass
 
-    # CONSENSUS VOTING SECTION
+    # func "leader_election": uses the bully algorithm to elect the machine with the lowest port as the leader
+    def leader_election(self) -> int:
+        alive_ports = (port for port, alive in [*self.peer_alive.items(), (self.PORT, True)] if alive)
+        self.primary_port = min(alive_ports)
+        self.sprint(f"New primary: {self.primary_port}")
+        return self.primary_port
+
+    # CONSENSUS VOTING (PAXOS) SECTION
 
     # func "send_commit_proposal" : proposes a commit, if all peers agree on it: it is commited; else: it is rejected
     def send_commit_proposal(self, commit) -> bool:
@@ -229,13 +228,6 @@ class ExchangeServer(ExchangeServiceServicer):
 
         return approved
 
-    # func "write_to_log": writes a commit to the log file
-    def write_to_log(self, commit, ballot_id):
-        # TODO: if not connected, wait until connected to add these commits
-        self.sprint(f"Added commit {commit} w/ ballot_id {ballot_id}")
-        self.log_file.write(f"{ballot_id}# {commit}\n")
-        self.log_file.flush()
-
     # rpc func "ProposeCommit": takes a CommitRequest/Proposal as input, returns an approving vote iff the ballot id is unseen
     def ProposeCommit(self, request, context):
         approved = request.ballot_id not in self.seen_ballots
@@ -261,6 +253,14 @@ class ExchangeServer(ExchangeServiceServicer):
 
         return exchange_pb2.Empty()
     
+    # func "write_to_log": writes a commit to the log file
+    def write_to_log(self, commit, ballot_id):
+        # TODO: if not connected, wait until connected to add these commits
+        self.sprint(f"Added commit {commit} w/ ballot_id {ballot_id}")
+        self.log_file.write(f"{ballot_id}# {commit}\n")
+        self.log_file.flush()
+
+    # func "vote_on_client_request": initiates a vote between servers
     def vote_on_client_request(self, commit_state: str) -> bool:
         success = False
         for _ in range(c.MAX_VOTE_ATTEMPTS):
@@ -298,11 +298,11 @@ class ExchangeServer(ExchangeServiceServicer):
         # retreive orderbook associated with the stock's ticker
         book = self.db.get_db()["orderbooks"][ticker]
         
-        # PAXOS
-        res = book.add_order(side, price, quantity, uid) # after matches are made 
+        # add order to the book and match orders
+        filled_orders = book.add_order(side, price, quantity, uid)
+        
+        # (bid.user, ask.user, execution_price, executed_quantity)
 
-
-        # match orders
 
         # then change: self.order_fills = ...
 
@@ -342,7 +342,7 @@ class ExchangeServer(ExchangeServiceServicer):
     def OrderFill(self, request, context) -> exchange_pb2.FillInfo:
         pass
 
-    # rpc func "Ping": 
+    # rpc func "Ping": allows client to 
     @connection_required
     def Ping(self, request, context):
         return exchange_pb2.Empty()

@@ -140,6 +140,8 @@ class Broker(BrokerServiceServicer):
             uid = self.oid_to_uid[fill.oid]
             self.uid_to_fills[uid].append((fill.oid, fill.amount_filled))
             # this is not done yet, need to update the rest of the maps
+            # has to update how much/many money/shares the user has,
+            # and which orders the user has active
             time.sleep(0.1) # latency?
     
 
