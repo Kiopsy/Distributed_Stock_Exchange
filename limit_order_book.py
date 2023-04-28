@@ -5,11 +5,12 @@ from collections import deque
 from datetime import datetime
 
 class Order:
-    def __init__(self, uid, price, quantity, timestamp):
+    def __init__(self, uid, price, quantity, timestamp, oid):
         self.uid = uid
         self.price = price
         self.quantity = quantity
         self.timestamp = timestamp
+        self.oid = oid
 
 class LimitOrderBook:
     def __init__(self, ticker = "Not set yet"):
@@ -21,7 +22,7 @@ class LimitOrderBook:
         heapq.heapify(self.asks)
 
     def add_order(self, side, price, quantity, uid, new_oid):
-        order = Order(uid, price, quantity, datetime.now())
+        order = Order(uid, price, quantity, datetime.now(), new_oid)
         if side == 'bid':
             # highest bid to the top: sorts by price then timestamp
             heapq.heappush(self.bids, (-price, order.timestamp, order)) 
@@ -59,7 +60,7 @@ class LimitOrderBook:
         
         filled_orders = []
         
-        # If the top bid and ask are not enough to fill the order size, we need to loop at look at the next highest bid or next lowest ask and see if those cross the order price, until we fill the entire order size or the bids or asks no longer cross. TODO: check that this works correctly
+        # If the top bid and ask are not enough to fill the order size, we need to loop at look at the next highest bid or next lowest ask and see if those cross the order price, until we fill the entire order size or the bids or asks no longer cross.
         while self.bids and self.asks:
             bid = self.bids[0][2]
             ask = self.asks[0][2]
@@ -69,18 +70,10 @@ class LimitOrderBook:
                 execution_price = (bid.price + ask.price) / 2
 
                 # Albert: we do not check if users have enough balance and stocks for the transaction because we just allow shorting/negative amounts of stock or money 
-                # TODO distribute this logic 
-                # bid.uid.balance += -executed_quantity * execution_price
-                
-                
-                # bid.uid.stocks += executed_quantity
-                # ask.uid.balance += executed_quantity * execution_price
-                # ask.uid.stocks += -executed_quantity
-
                 bid.quantity -= executed_quantity
                 ask.quantity -= executed_quantity
                 
-                filled_orders.append((bid.uid, ask.uid, execution_price, executed_quantity))
+                filled_orders.append((bid.uid, ask.uid, execution_price, executed_quantity, bid.oid, ask.oid))
 
                 if bid.quantity == 0:
                     heapq.heappop(self.bids)
