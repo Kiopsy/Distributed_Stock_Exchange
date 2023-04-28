@@ -16,37 +16,51 @@ service ExchangeService {
   // Client (broker) functions
   rpc Ping (Empty) returns (Empty) {}
 
-  // From institutions to exchange
+  // From institutions to exchange 
+  // TODO
   rpc SendOrder(OrderInfo) returns (OrderId) {}
   rpc CancelOrder(OrderId) returns (Result) {}
-  rpc GetOrderList(Empty) returns (stream OrderInfo) {}
+  rpc GetOrderList(Empty) returns (OrderInfo) {}
+  rpc DepositCash(Deposit) returns (Result) {}
 
   // From exchange to institutions, brokers
-  rpc OrderFill(Empty) returns (OrderInfo) {}
+  rpc OrderFill(UserInfo) returns (FillInfo) {}
 }
 
 service BrokerService {
   // From user to broker
   rpc LogIn(UserInfo) returns (Result) {}
-  rpc LogOut(Empty) returns (Result) {}
-  rpc SendOrder(OrderInfo) returns (OrderId) {}
-  rpc CancelOrder(OrderId) returns (Result) {}
+  rpc LogOut(Empty) returns (Result) {} // may or may not end up using log in / log out
+
+  rpc Register(UserInfo) returns (Result) {}
+  rpc SendOrder(OrderInfo) returns (Result) {}
+  rpc CancelOrder(CancelRequest) returns (Result) {}
   rpc GetBalance(UserId) returns (Balance) {}
+  rpc DepositCash(Deposit) returns (Empty) {}
 
   // From broker to user
-  rpc OrderFill(Empty) returns (OrderInfo) {}
-  // Add anything needed for paxos/replication?
+  rpc OrderFill(UserInfo) returns (FillInfo) {}
+}
+
+message Deposit {
+  int32 uid = 1;
+  int32 amount = 2;
+}
+
+message CancelRequest {
+  int64 uid = 1;
+  int64 oid = 2;
 }
 
 message OrderId {
   int64 oid = 1;
 }
 
-
 message ReviveInfo {
   int64 primary_port = 1;
-  bytes db_bytes = 2;
-  bool updates = 3;
+  string commit_log = 2;
+  bytes db_bytes = 3;
+  bool updates = 4;
 }
 
 message HeartbeatResponse {
@@ -67,6 +81,7 @@ message CommitVote {
 
 message Result {
   bool result = 1;
+  string message = 2;
 }
 
 message Empty {}
@@ -77,6 +92,11 @@ message Balance {
 
 message UserId {
   int32 uid = 1;
+}
+
+message FillInfo {
+  int32 oid = 1;
+  int32 amount_filled = 2;
 }
 
 message OrderInfo {
@@ -92,6 +112,5 @@ message OrderInfo {
 }
 
 message UserInfo {
-  string username = 1;
-  string password = 2;
+  int32 uid = 1;
 }

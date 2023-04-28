@@ -49,15 +49,20 @@ class ExchangeServiceStub(object):
                 request_serializer=exchange__pb2.OrderId.SerializeToString,
                 response_deserializer=exchange__pb2.Result.FromString,
                 )
-        self.GetOrderList = channel.unary_stream(
+        self.GetOrderList = channel.unary_unary(
                 '/exchange.ExchangeService/GetOrderList',
                 request_serializer=exchange__pb2.Empty.SerializeToString,
                 response_deserializer=exchange__pb2.OrderInfo.FromString,
                 )
+        self.DepositCash = channel.unary_unary(
+                '/exchange.ExchangeService/DepositCash',
+                request_serializer=exchange__pb2.Deposit.SerializeToString,
+                response_deserializer=exchange__pb2.Result.FromString,
+                )
         self.OrderFill = channel.unary_unary(
                 '/exchange.ExchangeService/OrderFill',
-                request_serializer=exchange__pb2.Empty.SerializeToString,
-                response_deserializer=exchange__pb2.OrderInfo.FromString,
+                request_serializer=exchange__pb2.UserInfo.SerializeToString,
+                response_deserializer=exchange__pb2.FillInfo.FromString,
                 )
 
 
@@ -116,6 +121,12 @@ class ExchangeServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def DepositCash(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def OrderFill(self, request, context):
         """From exchange to institutions, brokers
         """
@@ -161,15 +172,20 @@ def add_ExchangeServiceServicer_to_server(servicer, server):
                     request_deserializer=exchange__pb2.OrderId.FromString,
                     response_serializer=exchange__pb2.Result.SerializeToString,
             ),
-            'GetOrderList': grpc.unary_stream_rpc_method_handler(
+            'GetOrderList': grpc.unary_unary_rpc_method_handler(
                     servicer.GetOrderList,
                     request_deserializer=exchange__pb2.Empty.FromString,
                     response_serializer=exchange__pb2.OrderInfo.SerializeToString,
             ),
+            'DepositCash': grpc.unary_unary_rpc_method_handler(
+                    servicer.DepositCash,
+                    request_deserializer=exchange__pb2.Deposit.FromString,
+                    response_serializer=exchange__pb2.Result.SerializeToString,
+            ),
             'OrderFill': grpc.unary_unary_rpc_method_handler(
                     servicer.OrderFill,
-                    request_deserializer=exchange__pb2.Empty.FromString,
-                    response_serializer=exchange__pb2.OrderInfo.SerializeToString,
+                    request_deserializer=exchange__pb2.UserInfo.FromString,
+                    response_serializer=exchange__pb2.FillInfo.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -311,9 +327,26 @@ class ExchangeService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(request, target, '/exchange.ExchangeService/GetOrderList',
+        return grpc.experimental.unary_unary(request, target, '/exchange.ExchangeService/GetOrderList',
             exchange__pb2.Empty.SerializeToString,
             exchange__pb2.OrderInfo.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def DepositCash(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/exchange.ExchangeService/DepositCash',
+            exchange__pb2.Deposit.SerializeToString,
+            exchange__pb2.Result.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -329,8 +362,8 @@ class ExchangeService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/exchange.ExchangeService/OrderFill',
-            exchange__pb2.Empty.SerializeToString,
-            exchange__pb2.OrderInfo.FromString,
+            exchange__pb2.UserInfo.SerializeToString,
+            exchange__pb2.FillInfo.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -354,6 +387,11 @@ class BrokerServiceStub(object):
                 request_serializer=exchange__pb2.Empty.SerializeToString,
                 response_deserializer=exchange__pb2.Result.FromString,
                 )
+        self.Register = channel.unary_unary(
+                '/exchange.BrokerService/Register',
+                request_serializer=exchange__pb2.UserInfo.SerializeToString,
+                response_deserializer=exchange__pb2.Result.FromString,
+                )
         self.SendOrder = channel.unary_unary(
                 '/exchange.BrokerService/SendOrder',
                 request_serializer=exchange__pb2.OrderInfo.SerializeToString,
@@ -361,7 +399,7 @@ class BrokerServiceStub(object):
                 )
         self.CancelOrder = channel.unary_unary(
                 '/exchange.BrokerService/CancelOrder',
-                request_serializer=exchange__pb2.OrderId.SerializeToString,
+                request_serializer=exchange__pb2.CancelRequest.SerializeToString,
                 response_deserializer=exchange__pb2.Result.FromString,
                 )
         self.GetBalance = channel.unary_unary(
@@ -369,10 +407,15 @@ class BrokerServiceStub(object):
                 request_serializer=exchange__pb2.UserId.SerializeToString,
                 response_deserializer=exchange__pb2.Balance.FromString,
                 )
+        self.DepositCash = channel.unary_unary(
+                '/exchange.BrokerService/DepositCash',
+                request_serializer=exchange__pb2.Deposit.SerializeToString,
+                response_deserializer=exchange__pb2.Empty.FromString,
+                )
         self.OrderFill = channel.unary_unary(
                 '/exchange.BrokerService/OrderFill',
-                request_serializer=exchange__pb2.Empty.SerializeToString,
-                response_deserializer=exchange__pb2.OrderInfo.FromString,
+                request_serializer=exchange__pb2.UserInfo.SerializeToString,
+                response_deserializer=exchange__pb2.FillInfo.FromString,
                 )
 
 
@@ -392,6 +435,12 @@ class BrokerServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Register(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def SendOrder(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -405,6 +454,12 @@ class BrokerServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def GetBalance(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DepositCash(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -430,6 +485,11 @@ def add_BrokerServiceServicer_to_server(servicer, server):
                     request_deserializer=exchange__pb2.Empty.FromString,
                     response_serializer=exchange__pb2.Result.SerializeToString,
             ),
+            'Register': grpc.unary_unary_rpc_method_handler(
+                    servicer.Register,
+                    request_deserializer=exchange__pb2.UserInfo.FromString,
+                    response_serializer=exchange__pb2.Result.SerializeToString,
+            ),
             'SendOrder': grpc.unary_unary_rpc_method_handler(
                     servicer.SendOrder,
                     request_deserializer=exchange__pb2.OrderInfo.FromString,
@@ -437,7 +497,7 @@ def add_BrokerServiceServicer_to_server(servicer, server):
             ),
             'CancelOrder': grpc.unary_unary_rpc_method_handler(
                     servicer.CancelOrder,
-                    request_deserializer=exchange__pb2.OrderId.FromString,
+                    request_deserializer=exchange__pb2.CancelRequest.FromString,
                     response_serializer=exchange__pb2.Result.SerializeToString,
             ),
             'GetBalance': grpc.unary_unary_rpc_method_handler(
@@ -445,10 +505,15 @@ def add_BrokerServiceServicer_to_server(servicer, server):
                     request_deserializer=exchange__pb2.UserId.FromString,
                     response_serializer=exchange__pb2.Balance.SerializeToString,
             ),
+            'DepositCash': grpc.unary_unary_rpc_method_handler(
+                    servicer.DepositCash,
+                    request_deserializer=exchange__pb2.Deposit.FromString,
+                    response_serializer=exchange__pb2.Empty.SerializeToString,
+            ),
             'OrderFill': grpc.unary_unary_rpc_method_handler(
                     servicer.OrderFill,
-                    request_deserializer=exchange__pb2.Empty.FromString,
-                    response_serializer=exchange__pb2.OrderInfo.SerializeToString,
+                    request_deserializer=exchange__pb2.UserInfo.FromString,
+                    response_serializer=exchange__pb2.FillInfo.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -495,6 +560,23 @@ class BrokerService(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
+    def Register(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/exchange.BrokerService/Register',
+            exchange__pb2.UserInfo.SerializeToString,
+            exchange__pb2.Result.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def SendOrder(request,
             target,
             options=(),
@@ -523,7 +605,7 @@ class BrokerService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/exchange.BrokerService/CancelOrder',
-            exchange__pb2.OrderId.SerializeToString,
+            exchange__pb2.CancelRequest.SerializeToString,
             exchange__pb2.Result.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
@@ -546,6 +628,23 @@ class BrokerService(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
+    def DepositCash(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/exchange.BrokerService/DepositCash',
+            exchange__pb2.Deposit.SerializeToString,
+            exchange__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def OrderFill(request,
             target,
             options=(),
@@ -557,7 +656,7 @@ class BrokerService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/exchange.BrokerService/OrderFill',
-            exchange__pb2.Empty.SerializeToString,
-            exchange__pb2.OrderInfo.FromString,
+            exchange__pb2.UserInfo.SerializeToString,
+            exchange__pb2.FillInfo.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
