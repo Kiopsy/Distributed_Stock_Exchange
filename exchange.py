@@ -310,7 +310,7 @@ class ExchangeServer(ExchangeServiceServicer):
         # retreive orderbook associated with the stock's ticker
         book = self.db.get_db()["orderbooks"][ticker]
         
-        # add order to the book and match orders
+        # TODO: @Kiopsy @eezike we need to synchronize this with Paxos
         new_oid = self.oid_count
         self.oid_count += 1
         
