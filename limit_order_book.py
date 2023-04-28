@@ -13,7 +13,6 @@ class Order:
 
 class LimitOrderBook:
     def __init__(self, ticker = "Not set yet"):
-        # TODO: REPLICATE THIS
         self.ticker = ticker
         self.bids = []
         self.asks = []
@@ -70,13 +69,7 @@ class LimitOrderBook:
                 executed_quantity = min(bid.quantity, ask.quantity)
                 execution_price = (bid.price + ask.price) / 2
 
-                # # Check if users have enough balance and stocks for the transaction
-                # if bid.user.balance < executed_quantity * execution_price or ask.user.stocks < executed_quantity:
-                #     # TODO: better error handling? what do we do with the order that was not executed?
-                #     print("Error: User does not have enough balance or stocks to execute order.")
-                #     break
-                # # TODO - should we just allow shorting/negative amounts of stock or money because then we don't have to worry about this?
-                
+                # Albert: we do not check if users have enough balance and stocks for the transaction because we just allow shorting/negative amounts of stock or money 
                 bid.user.balance += -executed_quantity * execution_price
                 bid.user.stocks += executed_quantity
                 ask.user.balance += executed_quantity * execution_price
