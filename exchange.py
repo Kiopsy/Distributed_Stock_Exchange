@@ -75,6 +75,7 @@ class ExchangeServer(ExchangeServiceServicer):
         self.seen_ballots = ThreadSafeSet()
         
         self.uid_to_user_dict: Dict[int, User] = {}
+        self.oid_to_ticker: Dict[str, int] = {}
 
         for uid in c.USER_KEYS:
             self.uid_to_user_dict.update(uid, User(uid, balance=0))
@@ -313,6 +314,10 @@ class ExchangeServer(ExchangeServiceServicer):
         # TODO: @Kiopsy @eezike we need to synchronize this with Paxos
         new_oid = self.oid_count
         self.oid_count += 1
+
+        # TODO: this may also need to get synchronized using PAXOS; if so just write to db
+        self.oid_to_ticker.update(new_oid, ticker)
+
         
         filled_orders = book.add_order(side, price, quantity, uid, new_oid)
         
@@ -327,8 +332,8 @@ class ExchangeServer(ExchangeServiceServicer):
             
             self.uid_to_user_dict[ask_uid].balance += executed_quantity * execution_price
             self.uid_to_user_dict[ask_uid].ticker_to_amount[ticker] -= executed_quantity
-            self.uid_to_user_dict[ask_uid].filled_oids.append((ask_oid, execution_price, executed_quantity))
-        
+            self.uid_to_user_dict[ask_uid].filled_oids.append((ask_oid, execution_price, executed_quantity)
+
         return exchange_pb2.OrderId(oid=new_oid)
         
 
@@ -337,16 +342,23 @@ class ExchangeServer(ExchangeServiceServicer):
     @connection_required
     def CancelOrder(self, request, context) -> exchange_pb2.Result:
         # request = exchange_pb2.OrderId
-        if request.oid
-        cancel_order_by_oid(self, cancel_oid)
-        return exchange_pb2.Result(result=True)
+        if request.uid not in self.uid_to_user_dict.keys():
+            return exchange_pb2.Result(result=False)
+        if request.oid not in self.oid_to_ticker.keys():
+            return exchange_pb2.Result(result=False)
+
+        ticker = self.oid_to_ticker[new_oid]
+        book = self.db.get_db()["orderbooks"][ticker]
+        result = book.cancel_order_by_oid(cancel_oid)
+        return exchange_pb2.Result(result=result)
     
     # WIP
     # rpc func "GetOrderList": 
     # could probably skip this for now tbh
     @connection_required
     def GetOrderList(self, request, context) -> exchange_pb2.OrderInfo:
-        # request = exchange_pb2.Empty
+        book = self.db.get_db()["orderbooks"][ticker]
+        return book.get_orderbook()
         pass
 
     # WIP

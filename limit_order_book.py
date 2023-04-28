@@ -54,8 +54,12 @@ class LimitOrderBook:
         self.display()
         return cancelled
     
+    def get_orderbook(self):
+        return (self.bids[:], self.asks[:])
     
     def cancel_order_by_oid(self, cancel_oid):
+        did_delete = False
+        
         new_bids = [] 
         # Iterate through all nodes in the heap
         while self.bids:
@@ -63,6 +67,8 @@ class LimitOrderBook:
             if bid.oid != cancel_oid:
                 # If the node doesn't match the 'oid', add it to the new heap
                 heapq.heappush(new_bids, bid)
+            else:
+                did_delete = True
 
         # Replace the original heap with the new heap
         self.bids[:] = new_bids[:]
@@ -74,9 +80,13 @@ class LimitOrderBook:
             if ask.oid != cancel_oid:
                 # If the node doesn't match the 'oid', add it to the new heap
                 heapq.heappush(new_asks, ask)
+            else:
+                did_delete = True
 
         # Replace the original heap with the new heap
         self.asks[:] = new_asks[:]
+        
+        return did_delete
 
     # The margin/shorting system we use is 0 interest, loans are settled at time = infinity, so it's a "valid" margin/shorting system. Allows people to have negative amounts of balance/money and stock. 
     def match_orders(self):
