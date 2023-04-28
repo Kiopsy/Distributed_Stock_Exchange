@@ -299,7 +299,8 @@ class ExchangeServer(ExchangeServiceServicer):
         book = self.db.get_db()["orderbooks"][ticker]
         
         # PAXOS
-        res = book.add_order(side, price, quantity, uid) # after matches are made 
+        # filled_orders.append((bid.user, ask.user, execution_price, executed_quantity))
+        self.filled_orders = book.add_order(side, price, quantity, uid) # after matches are made 
 
 
         # match orders
