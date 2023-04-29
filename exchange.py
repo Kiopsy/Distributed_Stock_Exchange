@@ -202,7 +202,7 @@ class ExchangeServer(ExchangeServiceServicer):
     # CONSENSUS VOTING (PAXOS) SECTION
 
     # func "send_commit_proposal" : proposes a commit, if all peers agree on it: it is commited; else: it is rejected
-    def send_commit_proposal(self, commit) -> bool:
+    def send_commit_proposal(self, commit: str) -> bool:
 
         # sets the ballot id to the largest unseen ballot
         ballot_id = self.seen_ballots.max() + 1
@@ -275,12 +275,12 @@ class ExchangeServer(ExchangeServiceServicer):
 
     # func "vote_on_client_request": initiates a vote between servers
     def vote_on_client_request(self, commit_state: str) -> bool:
-        success = False
+
         for _ in range(c.MAX_VOTE_ATTEMPTS):
             if self.send_commit_proposal(commit_state):
-                success = True
-                break
-        return success
+                return True
+                
+        return False
 
     # CLIENT FUNCTIONS SECTION
 
@@ -324,7 +324,7 @@ class ExchangeServer(ExchangeServiceServicer):
         self.filled_orders.extend(filled_orders)
         
         for filled_order in filled_orders:
-            bid_uid, ask_uid, execution_price, executed_quantity, bid_oid, ask_oid = filled_order[0], filled_order[1], filled_order[2], filled_order[3]
+            bid_uid, ask_uid, execution_price, executed_quantity, bid_oid, ask_oid = filled_order[0], filled_order[1], filled_order[2], filled_order[3], filled_order[4], filled_order[5]
             
             self.uid_to_user_dict[bid_uid].balance -= executed_quantity * execution_price
             self.uid_to_user_dict[bid_uid].ticker_to_amount[ticker] += executed_quantity
@@ -366,13 +366,11 @@ class ExchangeServer(ExchangeServiceServicer):
     @connection_required
     def DepositCash(self, request, context) -> exchange_pb2.Result:
         res = False
-        if request.uid in self.db.get_db()["client_balance"]:
-            state_str = f"self.db.get_db()['client_balance'][{request.uid}] += {request.amount}"
-            success = self.vote_on_client_request(state_str)
-            if success:
-                self.db.get_db()["client_balance"][request.uid] += request.amount
-                self.db.store_data()
-                res = True  
+        state_str = f"self.db.get_db()['client_balance'][{request.uid}] += {request.amount}"
+        if request.uid in self.db.get_db()["client_balance"] and self.vote_on_client_request(state_str):
+            self.db.get_db()["client_balance"][request.uid] += request.amount
+            self.db.store_data()
+            res = True  
                 
         return exchange_pb2.Result(result = res)
 
