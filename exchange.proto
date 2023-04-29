@@ -111,10 +111,6 @@ message OrderInfo {
   int32 quantity = 2;
   int32 price = 3;
   int32 uid = 4;
-  // enum OrderType {
-  //   BID = 0;
-  //   ASK = 1; 
-  // }
   OrderType type = 5;
 }
 

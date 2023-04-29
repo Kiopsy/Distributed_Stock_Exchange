@@ -308,6 +308,12 @@ class ExchangeServer(ExchangeServiceServicer):
         uid = request.uid
         side = "bid" if request.type == exchange_pb2.OrderType.BID else "ask"
 
+        # PAXOS
+        # state_str = ""
+        # success = self.vote_on_client_request(state_str)
+        # if not success:
+        #     return exchange_pb2.OrderId(oid=-1)
+
         # retreive orderbook associated with the stock's ticker
         book = self.db.get_db()["orderbooks"][ticker]
         
@@ -333,6 +339,8 @@ class ExchangeServer(ExchangeServiceServicer):
             self.uid_to_user_dict[ask_uid].balance += executed_quantity * execution_price
             self.uid_to_user_dict[ask_uid].ticker_to_amount[ticker] -= executed_quantity
             self.uid_to_user_dict[ask_uid].filled_oids.append((ask_oid, execution_price, executed_quantity))
+        
+        self.db.store_data()
 
         return exchange_pb2.OrderId(oid=new_oid)
         
@@ -346,10 +354,19 @@ class ExchangeServer(ExchangeServiceServicer):
             return exchange_pb2.Result(result=False)
         if request.oid not in self.oid_to_ticker.keys():
             return exchange_pb2.Result(result=False)
-
+        
         ticker = self.oid_to_ticker[request.oid]
+    
+        # PAXOS
+        state_str = f'self.db.get_db()["orderbooks"]["{ticker}"].cancel_order_by_oid({request.oid})'
+        success = self.vote_on_client_request(state_str)
+        if not success:
+            return exchange_pb2.Result(result=False, message = "Servers failed to reach agreement on cancel request")
+
         book = self.db.get_db()["orderbooks"][ticker]
         result = book.cancel_order_by_oid(request.oid)
+        self.db.store_data()
+
         return exchange_pb2.Result(result=result)
     
     # WIP TODO
@@ -359,9 +376,8 @@ class ExchangeServer(ExchangeServiceServicer):
     def GetOrderList(self, request, context) -> exchange_pb2.OrderInfo:
         book = self.db.get_db()["orderbooks"][ticker]
         return book.get_orderbook()
-        pass
 
-    # WIP
+
     # rpc func "DepositCash": 
     @connection_required
     def DepositCash(self, request, context) -> exchange_pb2.Result:
@@ -388,7 +404,7 @@ class ExchangeServer(ExchangeServiceServicer):
         user = self.uid_to_user_dict[request.uid]
         if len(user.filled_oids) == 0:
             return failure 
-        
+
         oid, execution_price, quantity = user.filled_oids.popleft()
 
         return exchange_pb2.FillInfo(oid=oid, 
@@ -399,3 +415,4 @@ class ExchangeServer(ExchangeServiceServicer):
     @connection_required
     def Ping(self, request, context):
         return exchange_pb2.Empty()
+    
