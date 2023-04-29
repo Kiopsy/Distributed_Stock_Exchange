@@ -1,3 +1,8 @@
+pip install grpcio
+and 
+pip install grpcio-tools
+
+
 # cs262-final-project
 Distributed Stock Exchange
 
