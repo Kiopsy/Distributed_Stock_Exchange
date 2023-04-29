@@ -1,6 +1,6 @@
 from collections import defaultdict
 import pickle
-from limit_order_book import LimitOrderBook
+from limit_order_book import LimitOrderBook, User
 import constants as c
 
 # simply use this class like it is a dictionary, it will store data automatically
@@ -32,7 +32,10 @@ class Database():
         except:
             self.db = {
                 "orderbooks" : defaultdict(LimitOrderBook),
-                "client_balance": {client: 0 for client in c.USER_KEYS}
+                "client_balance": {client: 0 for client in c.USER_KEYS},
+                "oid_count": 0,
+                "oid_to_ticker": {},
+                "uid_to_user_dict": {uid: User(uid, balance=0) for uid in c.USER_KEYS},
             }
         return self.db
     

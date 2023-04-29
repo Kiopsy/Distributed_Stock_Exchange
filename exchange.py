@@ -68,19 +68,19 @@ class ExchangeServer(ExchangeServiceServicer):
             os.makedirs(c.PKL_DIR)
         self.PKL_FILE_NAME = f"./{c.PKL_DIR}/server{self.ID}.pkl"
         
-        # TREAT LIKE A DICTIONARY; load the database (create if it does not exist)
+        # load the database (create if it does not exist)
         self.db = Database(filename=self.PKL_FILE_NAME)
     
         # thread safe set that tracks if a ballot id has been seen
         self.seen_ballots = ThreadSafeSet()
         
-        self.uid_to_user_dict: Dict[int, User] = {}
-        self.oid_to_ticker: Dict[str, int] = {}
+        # self.uid_to_user_dict: Dict[int, User] = {}
+        # self.db.get_db()["oid_to_ticker"]: Dict[int, str] = {}
 
-        for uid in c.USER_KEYS:
-            self.uid_to_user_dict.update(uid, User(uid, balance=0))
+        # for uid in c.USER_KEYS:
+          #  self.uid_to_user_dict.update(uid, User(uid, balance=0))
         
-        self.oid_count = 0
+        # self.oid_count = 0
 
     # func "sprint": prints within a server
     def sprint(self, *args, **kwargs) -> None:
@@ -318,11 +318,11 @@ class ExchangeServer(ExchangeServiceServicer):
         book = self.db.get_db()["orderbooks"][ticker]
         
         # TODO: @Kiopsy @eezike we need to synchronize this with Paxos
-        new_oid = self.oid_count
-        self.oid_count += 1
+        new_oid = self.db.get_db()["oid_count"]
+        self.db.get_db()["oid_count"] += 1
 
         # TODO: this may also need to get synchronized using PAXOS; if so just write to db
-        self.oid_to_ticker.update(new_oid, ticker)
+        self.db.get_db()["oid_to_ticker"].update(new_oid, ticker)
 
         
         filled_orders = book.add_order(side, price, quantity, uid, new_oid)
@@ -332,13 +332,13 @@ class ExchangeServer(ExchangeServiceServicer):
         for filled_order in filled_orders:
             bid_uid, ask_uid, execution_price, executed_quantity, bid_oid, ask_oid = filled_order[0], filled_order[1], filled_order[2], filled_order[3], filled_order[4], filled_order[5]
             
-            self.uid_to_user_dict[bid_uid].balance -= executed_quantity * execution_price
-            self.uid_to_user_dict[bid_uid].ticker_to_amount[ticker] += executed_quantity
-            self.uid_to_user_dict[bid_uid].filled_oids.append((bid_oid, execution_price, executed_quantity))
+            self.db.get_db()["uid_to_user_dict"][bid_uid].balance -= executed_quantity * execution_price
+            self.db.get_db()["uid_to_user_dict"][bid_uid].ticker_to_amount[ticker] += executed_quantity
+            self.db.get_db()["uid_to_user_dict"][bid_uid].filled_oids.append((bid_oid, execution_price, executed_quantity))
             
-            self.uid_to_user_dict[ask_uid].balance += executed_quantity * execution_price
-            self.uid_to_user_dict[ask_uid].ticker_to_amount[ticker] -= executed_quantity
-            self.uid_to_user_dict[ask_uid].filled_oids.append((ask_oid, execution_price, executed_quantity))
+            self.db.get_db()["uid_to_user_dict"][ask_uid].balance += executed_quantity * execution_price
+            self.db.get_db()["uid_to_user_dict"][ask_uid].ticker_to_amount[ticker] -= executed_quantity
+            self.db.get_db()["uid_to_user_dict"][ask_uid].filled_oids.append((ask_oid, execution_price, executed_quantity))
         
         self.db.store_data()
 
@@ -352,10 +352,10 @@ class ExchangeServer(ExchangeServiceServicer):
         # request = exchange_pb2.OrderId
         if request.uid not in self.uid_to_user_dict.keys():
             return exchange_pb2.Result(result=False)
-        if request.oid not in self.oid_to_ticker.keys():
+        if request.oid not in self.db.get_db()["oid_to_ticker"].keys():
             return exchange_pb2.Result(result=False)
         
-        ticker = self.oid_to_ticker[request.oid]
+        ticker = self.db.get_db()["oid_to_ticker"][request.oid]
     
         # PAXOS
         state_str = f'self.db.get_db()["orderbooks"]["{ticker}"].cancel_order_by_oid({request.oid})'
