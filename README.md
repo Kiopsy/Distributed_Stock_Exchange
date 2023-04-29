@@ -7,6 +7,21 @@ pip install grpcio-tools
 Distributed Stock Exchange
 
 
+## Installation
+- Clone the repository:
+```bash
+git clone https://github.com/alzh9000/cs262-final-project.git
+```
+- Ensure that the most recent version of Python is downloaded [here](https://www.python.org/downloads/)
+- Ensure that gRPC is downloaded for Python using the following commands
+```bash
+pip install grpcio
+pip install grpcio-tools
+```
+- We use Tkinter for the GUI, so download it with the following command:
+```bash
+pip install tk
+```
 
 
 # Tasks 

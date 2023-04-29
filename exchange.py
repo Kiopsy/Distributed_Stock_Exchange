@@ -4,17 +4,10 @@ from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_
 from helpers import ThreadSafeSet
 import constants as c
 from concurrent import futures
-from limit_order_book import LimitOrderBook, User
-from database import Database
+from limit_order_book import LimitOrderBook
+from database import Database, User
 from collections import defaultdict, deque
 from typing import Dict
-
-class User:
-    def __init__(self, uid: int, balance: int):
-        self.uid: int = uid
-        self.balance: int = balance
-        self.ticker_to_amount: Dict[str, int] = {}
-        self.filled_oids = deque()
 
 # func "serve": starts an exchange server
 def serve(id: int) -> None:
