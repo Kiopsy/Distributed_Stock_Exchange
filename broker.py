@@ -160,6 +160,9 @@ class Broker(BrokerServiceServicer):
     def receive_fills(self):
         while True:
             fill = self.stub.OrderFill(exchange_pb2.UserInfo(uid=self.uid))
+            if fill.oid == -1:
+                time.sleep(0.2)
+                continue
             order = self.oid_to_order[fill.oid]
             self.uid_to_user[order.uid].fills.append((order.oid, fill.amount_filled))
             self.oid_to_order[fill.oid].amount -= fill.amount_filled
