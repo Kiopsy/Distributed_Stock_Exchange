@@ -335,6 +335,8 @@ class ExchangeServer(ExchangeServiceServicer):
         
         self.db.store_data()   
 
+        self.sprint(book.get_orderbook())
+
         return new_oid 
 
     # WIP
@@ -342,27 +344,21 @@ class ExchangeServer(ExchangeServiceServicer):
     @connection_required
     def CancelOrder(self, request, context) -> exchange_pb2.Result:
         # request = exchange_pb2.OrderId
-        self.sprint(1)
         if request.oid not in self.db.get_db()["oid_to_ticker"].keys():
-            self.sprint(1.1)
             return exchange_pb2.Result(result=False)
         
-        self.sprint(2)
         ticker = self.db.get_db()["oid_to_ticker"][request.oid]
     
-        self.sprint(3)
         # PAXOS
         state_str = f'self.db.get_db()["orderbooks"]["{ticker}"].cancel_order_by_oid({request.oid})'
         if not self.vote_on_client_request(state_str):
             return exchange_pb2.Result(result=False, message = "Servers failed to reach agreement on cancel request")
 
-        self.sprint(4)
         book = self.db.get_db()["orderbooks"][ticker]
         result = book.cancel_order_by_oid(request.oid)
         self.db.store_data()
 
-        self.sprint(5)
-
+        self.sprint(book.get_orderbook())
         return exchange_pb2.Result(result=result)
     
     # WIP TODO
@@ -370,7 +366,7 @@ class ExchangeServer(ExchangeServiceServicer):
     # could probably skip this for now tbh
     @connection_required
     def GetOrderList(self, request, context) -> exchange_pb2.OrderInfo:
-        book = self.db.get_db()["orderbooks"][ticker]
+        book = self.db.get_db()["orderbooks"]["GOOGL"]
         return book.get_orderbook()
 
 

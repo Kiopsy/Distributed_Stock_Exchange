@@ -1,6 +1,0 @@
-1# self.send_order_helper('GOOGL', 10, 100, 0, 'bid')
-2# self.send_order_helper('GOOGL', 5, 100, 0, 'ask')
-3# self.db.get_db()["orderbooks"]["GOOGL"].cancel_order_by_oid(26)
-4# self.send_order_helper('GOOGL', 10, 100, 0, 'bid')
-5# self.send_order_helper('GOOGL', 5, 100, 0, 'ask')
-6# self.db.get_db()["orderbooks"]["GOOGL"].cancel_order_by_oid(28)

@@ -11,7 +11,9 @@ class Order:
         self.quantity = quantity
         self.timestamp = timestamp
         self.oid = oid
-
+        
+    def __str__(self):
+        return f"Order(price={self.price}, quantity={self.quantity}, timestamp={self.timestamp})"
 class LimitOrderBook:
     def __init__(self, ticker = "Not set yet"):
         # self.filled_orders = deque()
