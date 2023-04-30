@@ -12,8 +12,9 @@ class Order:
         self.timestamp = timestamp
         self.oid = oid
         
-    def __str__(self):
-        return f"Order(price={self.price}, quantity={self.quantity}, timestamp={self.timestamp})"
+    def __repr__(self):
+        # return f"Order(price={self.price}, quantity={self.quantity}, timestamp={self.timestamp})"
+        return f"price={self.price}, quantity={self.quantity}"
 class LimitOrderBook:
     def __init__(self, ticker = "Not set yet"):
         # self.filled_orders = deque()
@@ -57,7 +58,7 @@ class LimitOrderBook:
         return cancelled
     
     def get_orderbook(self):
-        return (self.bids[:], self.asks[:])
+        return ([heap_el[2] for heap_el in self.bids], [heap_el[2] for heap_el in self.asks[:]])
     
     def cancel_order_by_oid(self, cancel_oid):
         did_delete = False
