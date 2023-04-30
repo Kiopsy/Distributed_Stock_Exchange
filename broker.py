@@ -150,7 +150,8 @@ if __name__ == "__main__":
     while True:
         _ = input("[Enter]: ")
         # broker.stub.DepositCash(exchange_pb2.Deposit(uid=0, amount=100))
-        broker.stub.SendOrder(exchange_pb2.OrderInfo(ticker = "GOOGL", quantity = 1, price = 100, uid = c.USER_KEYS[0], type = exchange_pb2.OrderType.BID))
+        broker.stub.SendOrder(exchange_pb2.OrderInfo(ticker = "GOOGL", quantity = 10, price = 100, uid = c.USER_KEYS[0], type = exchange_pb2.OrderType.BID))
+        broker.stub.SendOrder(exchange_pb2.OrderInfo(ticker = "GOOGL", quantity = 5, price = 100, uid = c.USER_KEYS[0], type = exchange_pb2.OrderType.ASK))
     # threading.Thread(target=broker.receive_fills).start()
     # deposit a dollar as a test
     # broker.stub.DepositCash(request=exchange_pb2.Deposit(uid=0, amount=100))

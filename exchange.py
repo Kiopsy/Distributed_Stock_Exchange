@@ -315,23 +315,31 @@ class ExchangeServer(ExchangeServiceServicer):
         self.db.get_db()["oid_count"] += 1
 
         # TODO: this may also need to get synchronized using PAXOS; if so just write to db
-        self.db.get_db()["oid_to_ticker"].update(new_oid, ticker)
+        self.db.get_db()["oid_to_ticker"][new_oid] =  ticker
 
         
         filled_orders = book.add_order(side, price, quantity, uid, new_oid)
         
-        self.filled_orders.extend(filled_orders)
+        # self.filled_orders.extend(filled_orders)
         
         for filled_order in filled_orders:
+            self.sprint(1.1)
             bid_uid, ask_uid, execution_price, executed_quantity, bid_oid, ask_oid = filled_order[0], filled_order[1], filled_order[2], filled_order[3], filled_order[4], filled_order[5]
+            self.sprint(1.2)
             
             self.db.get_db()["uid_to_user_dict"][bid_uid].balance -= executed_quantity * execution_price
-            self.db.get_db()["uid_to_user_dict"][bid_uid].ticker_to_amount[ticker] += executed_quantity
+            self.sprint(1.3)
+            self.db.get_db()["uid_to_user_dict"][bid_uid].ticker_to_amount[ticker] = self.db.get_db()["uid_to_user_dict"][bid_uid].ticker_to_amount.get(ticker, 0) + executed_quantity
+            self.sprint(1.3)
             self.db.get_db()["uid_to_user_dict"][bid_uid].filled_oids.append((bid_oid, execution_price, executed_quantity))
+
+            self.sprint(2)
             
             self.db.get_db()["uid_to_user_dict"][ask_uid].balance += executed_quantity * execution_price
             self.db.get_db()["uid_to_user_dict"][ask_uid].ticker_to_amount[ticker] -= executed_quantity
             self.db.get_db()["uid_to_user_dict"][ask_uid].filled_oids.append((ask_oid, execution_price, executed_quantity))
+
+            self.sprint(3)
         
         self.db.store_data()
 

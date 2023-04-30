@@ -85,7 +85,7 @@ class nFaultStub:
                     response = func(*args, **kwargs)
                     return response
                 except Exception as e: # On any failure, switch stub and backup stub
-                    print(f"An error occurred while calling {name}")
+                    print(f"An error occurred while calling {name}: {e}")
                     self.stub_dict, self.backup_stub_dict = self.backup_stub_dict, self.stub_dict
                     if i != len(self.SERVERS) - 1:
                         print(f"Switching to backup connected to port {self.stub_dict['port']}")
