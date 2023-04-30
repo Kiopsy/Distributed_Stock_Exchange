@@ -10,14 +10,25 @@ import exchange_pb2_grpc
 
 FEE = 1
 
+class Order:
+    def __init__(self, oid: int, uid: int, side: exchange_pb2.OrderType) -> None:
+        self.oid = oid
+        self.uid = uid
+        self.side = side
+
+class User:
+    def __init__(self, uid: int) -> None:
+        self.uid = uid
+        self.balance = 0
+        self.oids: Dict[int, Set[int]] = {}
+        self.ticker_balances: Dict[str, int] = {}
+        self.fills: Deque[Tuple[int, int]] = deque()
+
 class Broker(BrokerServiceServicer):
     def __init__(self) -> None:
         self.uid = c.USER_KEYS[0]
-        self.uid_to_balance: Dict[int, int] = {}
-        self.uid_to_tickers_to_amounts: Dict[int, List[Tuple[str, int]]] = {}
-        self.uid_to_oids: Dict[int, Set[int]] = {} # user id to order ids
-        self.oid_to_uid: Dict[int, int] = {}
-        self.uid_to_fills: Dict[int, Deque[Tuple[int, int]]] = {}
+        self.uid_to_user: Dict[int, User] = {}
+        self.oid_to_order: Dict[int, Order] = {}
 
         self.broker_balance = 10_000 # the broker has $100 (10k cents) to cover fees
         self.held_stocks = []
@@ -27,21 +38,19 @@ class Broker(BrokerServiceServicer):
             self.stub.backup_stub_connect_thread.start()
         
     def Register(self, request, context):
-        if request.uid in self.uid_to_balance.keys():
+        if request.uid in self.uid_to_user.keys():
             return exchange_pb2.Result(result=False)
-        
-        self.uid_to_balance.update(request.uid, 0)
-        self.uid_to_oids.update(request.uid, set())
-        self.uid_to_tickers_to_amounts.update(request.uid, [])
-        self.uid_to_fills.update(request.uid, deque())
+
+        self.uid_to_user[request.uid] = User(request.uid)
 
         return exchange_pb2.Result(result=True)
 
     def DepositCash(self, request, context):
-        if request.uid not in self.uid_to_balance.keys():
+        if request.uid not in self.uid_to_user.keys():
             # just return empty regardless; non-compliant client
             return exchange_pb2.Empty()
-        self.uid_to_balance[request.uid] += request.amount
+        
+        self.uid_to_user[request.uid].balance += request.amount
         # Deposit enough cash with exchange to cover any user transactions
         self.stub.DepositCash(request.amount)
         return exchange_pb2.Empty()
@@ -50,38 +59,38 @@ class Broker(BrokerServiceServicer):
         if request.OrderType == exchange_pb2.OrderType.BID:
             return self.handle_bid(request)
         else:
-            return self.handle_offer(request)
+            return self.handle_ask(request)
 
     def CancelOrder(self, request, context):
-        if request.uid not in self.uid_to_oids:
+        if request.uid not in self.uid_to_user.keys():
             return exchange_pb2.Result(result=False)
 
-        if request.oid not in self.uid_to_oids[request.uid]:
+        if request.oid not in self.oid_to_order.keys():
             return exchange_pb2.Result(result=False)
 
         result = self.stub.CancelOrder(request.oid)
 
         if result.result:
-            self.uid_to_oids[request.uid].remove(request.oid)
+            self.uid_to_user[request.uid].oids.remove(request.oid)
 
         return result
     
     def OrderFill(self, request, context):
-        if request.uid not in self.uid_to_oids:
+        if request.uid not in self.uid_to_user.keys():
             return exchange_pb2.FillInfo(oid=-1, amount_filled=-1)
 
-        if len(self.uid_to_fills[request.uid]) == 0:
+        if len(self.uid_to_user[request.uid].fills) == 0:
             return exchange_pb2.FillInfo(oid=-1, amount_filled=-1)
 
-        oid, amount_filled = self.uid_to_fills[request.uid].popleft()
+        oid, amount_filled = self.uid_to_user[request.uid].fills.popleft()
 
         return exchange_pb2.FillInfo(oid=oid, amount_filled=amount_filled)
 
     def handle_bid(self, request):
-        if request.uid not in self.uid_to_balance.keys():
+        if request.uid not in self.uid_to_user.keys():
             return exchange_pb2.OrderId(oid=-1)
 
-        balance = self.uid_to_balance[request.uid]
+        balance = self.uid_to_user[request.uid].balance
 
         # Note that all costs are in cents
         cost = request.price * request.quantity
@@ -93,27 +102,29 @@ class Broker(BrokerServiceServicer):
 
         if response.oid == -1:
             # don't charge the cost if the order doesn't go through, only fee
-            self.uid_to_balance[request.uid] -= FEE
+            self.uid_to_user[request.uid].balance -= FEE
             return exchange_pb2.OrderId(oid=-1)
 
-        self.uid_to_balance[request.uid] -= cost + FEE
+        self.uid_to_user[request.uid].balance -= cost + FEE
         self.broker_balance += FEE - c.EXCHANGE_FEE
-        self.uid_to_oids[request.uid].add(response.oid)
-        self.oid_to_uid.update(response.oid, request.uid)
+        self.uid_to_user[request.uid].oids.add(response.oid)
+        self.oid_to_order[response.oid] = Order(response.oid, 
+                                                request.uid, 
+                                                exchange_pb2.OrderType.BID)
 
         # Once we send to the exchange we want to make this oid match with whatever
         # order id the exchange gives us
         return exchange_pb2.OrderId(oid=response.oid)
 
 
-    def handle_offer(self, request):
-        if request.uid not in self.uid_to_positions.keys():
+    def handle_ask(self, request):
+        if request.uid not in self.uid_to_user.keys():
             return exchange_pb2.OrderId(oid=-1)
         
-        if request.ticker not in self.uid_to_tickers_to_amounts[request.uid].keys():
+        if request.ticker not in self.uid_to_user[request.uid].ticker_balances.keys():
             return exchange_pb2.OrderId(oid=-1)
 
-        quantity_owned = self.uid_to_tickers_to_amounts[request.uid][request.ticker]
+        quantity_owned = self.uid_to_user[request.uid].ticker_balances[request.ticker]
         
         if request.quantity > quantity_owned:
             return exchange_pb2.OrderId(oid=-1)
@@ -122,15 +133,15 @@ class Broker(BrokerServiceServicer):
         # remove the stocks and charge a fee from the user's account
         response = self.stub.SendOrder(request=request)
 
-        self.uid_to_balance[request.uid] -= FEE
+        self.uid_to_user[request.uid].balance -= FEE
         self.broker_balance += FEE - c.EXCHANGE_FEE
-        self.uid_to_oids[request.uid].add(response.oid)
-        self.oid_to_uid.update(response.oid, request.uid)
+        self.uid_to_user[request.uid].oids.add(response.oid)
+        self.oid_to_order[response.oid] = Order(response.oid, request.uid, exchange_pb2.OrderType.ASK)
 
         if response.oid == -1:
             return exchange_pb2.OrderId(oid=-1)
         
-        self.uid_to_tickers_to_amounts[request.uid][request.ticker] -= quantity_owned
+        self.uid_to_user[request.uid].ticker_balances[request.ticker] -= request.quantity
 
         return exchange_pb2.OrderId(oid=response.oid)
 
