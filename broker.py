@@ -149,7 +149,8 @@ if __name__ == "__main__":
     broker = Broker()
     while True:
         _ = input("[Enter]: ")
-        broker.stub.DepositCash(exchange_pb2.Deposit(uid=0, amount=100))
+        # broker.stub.DepositCash(exchange_pb2.Deposit(uid=0, amount=100))
+        # broker.stub.send_order
     # threading.Thread(target=broker.receive_fills).start()
     # deposit a dollar as a test
     # broker.stub.DepositCash(request=exchange_pb2.Deposit(uid=0, amount=100))
