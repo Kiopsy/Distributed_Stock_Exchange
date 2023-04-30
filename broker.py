@@ -19,7 +19,7 @@ class Broker(BrokerServiceServicer):
         self.oid_to_uid: Dict[int, int] = {}
         self.uid_to_fills: Dict[int, Deque[Tuple[int, int]]] = {}
 
-        self.broker_balance = 10000 # the broker has $100 (10k cents) to cover fees
+        self.broker_balance = 10_000 # the broker has $100 (10k cents) to cover fees
         self.held_stocks = []
         
         self.stub = nFaultStub()
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     while True:
         _ = input("[Enter]: ")
         # broker.stub.DepositCash(exchange_pb2.Deposit(uid=0, amount=100))
-        # broker.stub.send_order
+        broker.stub.SendOrder(exchange_pb2.OrderInfo(ticker = "GOOGL", quantity = 1, price = 100, uid = c.USER_KEYS[0], type = exchange_pb2.OrderType.BID))
     # threading.Thread(target=broker.receive_fills).start()
     # deposit a dollar as a test
     # broker.stub.DepositCash(request=exchange_pb2.Deposit(uid=0, amount=100))
