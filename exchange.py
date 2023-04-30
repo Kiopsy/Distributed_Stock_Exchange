@@ -307,6 +307,11 @@ class ExchangeServer(ExchangeServiceServicer):
         # if not success:
         #     return exchange_pb2.OrderId(oid=-1)
 
+        self.send_order_helper(ticker, quantity, price, uid, side)
+
+        return exchange_pb2.OrderId(oid=new_oid)
+    
+    def send_order_helper(self, ticker, quantity, price, uid, side):
         # retreive orderbook associated with the stock's ticker
         book = self.db.get_db()["orderbooks"][ticker]
         
@@ -341,10 +346,7 @@ class ExchangeServer(ExchangeServiceServicer):
 
             self.sprint(3)
         
-        self.db.store_data()
-
-        return exchange_pb2.OrderId(oid=new_oid)
-        
+        self.db.store_data()    
 
     # WIP
     # rpc func "CancelOrder": 
