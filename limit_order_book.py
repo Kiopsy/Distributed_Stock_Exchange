@@ -63,10 +63,10 @@ class LimitOrderBook:
         new_bids = [] 
         # Iterate through all nodes in the heap
         while self.bids:
-            bid = heapq.heappop(self.bids)
+            price, time_stamp, bid = heapq.heappop(self.bids)
             if bid.oid != cancel_oid:
                 # If the node doesn't match the 'oid', add it to the new heap
-                heapq.heappush(new_bids, bid)
+                heapq.heappush(new_bids, (-price, time_stamp, bid)) 
             else:
                 did_delete = True
 
@@ -76,10 +76,10 @@ class LimitOrderBook:
         new_asks = [] 
         # Iterate through all nodes in the heap
         while self.asks:
-            ask = heapq.heappop(self.asks)
+            price, time_stamp, ask = heapq.heappop(self.asks)[2]
             if ask.oid != cancel_oid:
                 # If the node doesn't match the 'oid', add it to the new heap
-                heapq.heappush(new_asks, ask)
+                heapq.heappush(new_asks, (price, time_stamp, ask))
             else:
                 did_delete = True
 

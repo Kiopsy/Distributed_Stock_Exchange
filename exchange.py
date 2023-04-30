@@ -67,13 +67,6 @@ class ExchangeServer(ExchangeServiceServicer):
         # thread safe set that tracks if a ballot id has been seen
         self.seen_ballots = ThreadSafeSet()
         
-        # self.uid_to_user_dict: Dict[int, User] = {}
-        # self.db.get_db()["oid_to_ticker"]: Dict[int, str] = {}
-
-        # for uid in c.USER_KEYS:
-          #  self.uid_to_user_dict.update(uid, User(uid, balance=0))
-        
-        # self.oid_count = 0
 
     # func "sprint": prints within a server
     def sprint(self, *args, **kwargs) -> None:
@@ -320,7 +313,6 @@ class ExchangeServer(ExchangeServiceServicer):
 
         # TODO: this may also need to get synchronized using PAXOS; if so just write to db
         self.db.get_db()["oid_to_ticker"][new_oid] =  ticker
-
         
         filled_orders = book.add_order(side, price, quantity, uid, new_oid)
         
@@ -350,22 +342,26 @@ class ExchangeServer(ExchangeServiceServicer):
     @connection_required
     def CancelOrder(self, request, context) -> exchange_pb2.Result:
         # request = exchange_pb2.OrderId
-        if request.uid not in self.uid_to_user_dict.keys():
-            return exchange_pb2.Result(result=False)
+        self.sprint(1)
         if request.oid not in self.db.get_db()["oid_to_ticker"].keys():
+            self.sprint(1.1)
             return exchange_pb2.Result(result=False)
         
+        self.sprint(2)
         ticker = self.db.get_db()["oid_to_ticker"][request.oid]
     
+        self.sprint(3)
         # PAXOS
         state_str = f'self.db.get_db()["orderbooks"]["{ticker}"].cancel_order_by_oid({request.oid})'
-        success = self.vote_on_client_request(state_str)
-        if not success:
+        if not self.vote_on_client_request(state_str):
             return exchange_pb2.Result(result=False, message = "Servers failed to reach agreement on cancel request")
 
+        self.sprint(4)
         book = self.db.get_db()["orderbooks"][ticker]
         result = book.cancel_order_by_oid(request.oid)
         self.db.store_data()
+
+        self.sprint(5)
 
         return exchange_pb2.Result(result=result)
     
@@ -398,14 +394,20 @@ class ExchangeServer(ExchangeServiceServicer):
                                         amount_filled=-1, 
                                         execution_price=-1)
 
-        if request.uid not in self.uid_to_user_dict.keys():
+        if request.uid not in self.db.get_db()["uid_to_user_dict"].keys():
             return failure
         
-        user = self.uid_to_user_dict[request.uid]
+        user = self.db.get_db()["uid_to_user_dict"][request.uid]
         if len(user.filled_oids) == 0:
             return failure 
+        
+        # PAXOS
+        state_str = f""""self.db.get_db()["uid_to_user_dict"][{request.uid}].filled_oids.popleft()"""
+        if not self.vote_on_client_request(state_str):
+            return failure
 
         oid, execution_price, quantity = user.filled_oids.popleft()
+        self.db.store_data()
 
         return exchange_pb2.FillInfo(oid=oid, 
                                      amount_filled=quantity, 
