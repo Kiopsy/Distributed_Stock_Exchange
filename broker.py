@@ -11,9 +11,12 @@ import exchange_pb2_grpc
 FEE = 1
 
 class Order:
-    def __init__(self, oid: int, uid: int, side: exchange_pb2.OrderType) -> None:
+    def __init__(self, oid: int, uid: int, amount: int, 
+                 ticker: str, side: exchange_pb2.OrderType) -> None:
         self.oid = oid
         self.uid = uid
+        self.amount = amount
+        self.ticker = ticker
         self.side = side
 
 class User:
@@ -110,6 +113,8 @@ class Broker(BrokerServiceServicer):
         self.uid_to_user[request.uid].oids.add(response.oid)
         self.oid_to_order[response.oid] = Order(response.oid, 
                                                 request.uid, 
+                                                request.quantity,
+                                                request.ticker,
                                                 exchange_pb2.OrderType.BID)
 
         # Once we send to the exchange we want to make this oid match with whatever
@@ -124,7 +129,10 @@ class Broker(BrokerServiceServicer):
         if request.ticker not in self.uid_to_user[request.uid].ticker_balances.keys():
             return exchange_pb2.OrderId(oid=-1)
 
-        quantity_owned = self.uid_to_user[request.uid].ticker_balances[request.ticker]
+        if request.quantity <= 0:
+            return exchange_pb2.OrderId(oid=-1)
+
+        quantity_owned = self.uid_to_user[request.uid].ticker_balances.get(request.ticker, 0)
         
         if request.quantity > quantity_owned:
             return exchange_pb2.OrderId(oid=-1)
@@ -136,7 +144,11 @@ class Broker(BrokerServiceServicer):
         self.uid_to_user[request.uid].balance -= FEE
         self.broker_balance += FEE - c.EXCHANGE_FEE
         self.uid_to_user[request.uid].oids.add(response.oid)
-        self.oid_to_order[response.oid] = Order(response.oid, request.uid, exchange_pb2.OrderType.ASK)
+        self.oid_to_order[response.oid] = Order(response.oid, 
+                                                request.uid, 
+                                                request.ticker,
+                                                request.quantity, 
+                                                exchange_pb2.OrderType.ASK)
 
         if response.oid == -1:
             return exchange_pb2.OrderId(oid=-1)
@@ -148,11 +160,19 @@ class Broker(BrokerServiceServicer):
     def receive_fills(self):
         while True:
             fill = self.stub.OrderFill(exchange_pb2.UserInfo(uid=self.uid))
-            uid = self.oid_to_uid[fill.oid]
-            self.uid_to_fills[uid].append((fill.oid, fill.amount_filled))
-            # this is not done yet, need to update the rest of the maps
-            # has to update how much/many money/shares the user has,
-            # and which orders the user has active
+            order = self.oid_to_order[fill.oid]
+            self.uid_to_user[order.uid].fills.append((order.oid, fill.amount_filled))
+            self.oid_to_order[fill.oid].amount -= fill.amount_filled
+            if order.side == exchange_pb2.OrderType.BID:
+                shares = self.uid_to_user[order.uid].ticker_balances.get(order.ticker, 0)
+                self.uid_to_user[order.uid].ticker_balances = shares + fill.amount_filled
+            else:
+                self.uid_to_user[order.uid].balance += fill.amount_filled * fill.execution_price
+
+            # No longer an active order if all shares are filled
+            if self.oid_to_order[fill.oid].amount == 0:
+                self.uid_to_user[order.uid].oids.pop(order.oid)
+
             time.sleep(0.1) # latency?
     
 
