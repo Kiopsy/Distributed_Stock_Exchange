@@ -12,10 +12,11 @@ FEE = 1
 
 class Order:
     def __init__(self, oid: int, uid: int, amount: int, 
-                 ticker: str, side: exchange_pb2.OrderType) -> None:
+                 ticker: str, price: int, side: exchange_pb2.OrderType) -> None:
         self.oid = oid
         self.uid = uid
         self.amount = amount
+        self.price = price
         self.ticker = ticker
         self.side = side
 
@@ -74,7 +75,12 @@ class Broker(BrokerServiceServicer):
         result = self.stub.CancelOrder(request.oid)
 
         if result.result:
-            self.uid_to_user[request.uid].oids.remove(request.oid)
+            self.uid_to_user[request.uid].oids.pop(request.oid)
+            order = self.oid_to_order[request.oid]
+            if order.side == exchange_pb2.OrderType.BID:
+                self.uid_to_user[request.uid].balance += order.price * order.amount
+            else:
+                self.uid_to_user[request.uid].ticker_balances[order.ticker] += order.amount
 
         return result
     
@@ -115,6 +121,7 @@ class Broker(BrokerServiceServicer):
                                                 request.uid, 
                                                 request.quantity,
                                                 request.ticker,
+                                                request.price,
                                                 exchange_pb2.OrderType.BID)
 
         # Once we send to the exchange we want to make this oid match with whatever
@@ -148,6 +155,7 @@ class Broker(BrokerServiceServicer):
                                                 request.uid, 
                                                 request.ticker,
                                                 request.quantity, 
+                                                request.price,
                                                 exchange_pb2.OrderType.ASK)
 
         if response.oid == -1:
