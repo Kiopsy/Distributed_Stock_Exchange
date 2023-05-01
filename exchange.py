@@ -338,7 +338,7 @@ class ExchangeServer(ExchangeServiceServicer):
         result = book.cancel_order_by_oid(request.oid)
         self.db.store_data()
 
-        self.sprint(book.get_orderbook())
+        self.sprint("Orderbook:", book.get_orderbook())
         return exchange_pb2.Result(result=result)
     
     # WIP TODO

@@ -107,23 +107,18 @@ class Broker(BrokerServiceServicer):
             return exchange_pb2.OrderId(oid=-1)
 
         balance = self.uid_to_user[request.uid].balance
-        print("2")
 
         # Note that all costs are in cents
         cost = request.price * request.quantity
-        print("3")
 
         if cost + FEE > balance:
             return exchange_pb2.OrderId(oid=-1)
-        print("4")
         response = self.stub.SendOrder(request=request)
-        print("5")
 
         if response.oid == -1:
             # don't charge the cost if the order doesn't go through, only fee
             self.uid_to_user[request.uid].balance -= FEE
             return exchange_pb2.OrderId(oid=-1)
-        print("6")
 
         self.uid_to_user[request.uid].balance -= cost + FEE
         self.broker_balance += FEE - c.EXCHANGE_FEE
@@ -133,7 +128,6 @@ class Broker(BrokerServiceServicer):
                                                 request.ticker,
                                                 request.price,
                                                 exchange_pb2.OrderType.BID)
-        print("7")
 
         # Once we send to the exchange we want to make this oid match with whatever
         # order id the exchange gives us
@@ -150,27 +144,20 @@ class Broker(BrokerServiceServicer):
         if request.quantity <= 0:
             return exchange_pb2.OrderId(oid=-1)
 
-        print("1")
         quantity_owned = self.uid_to_user[request.uid].ticker_balances.get(request.ticker, 0)
         
-        print("2")
         if request.quantity > quantity_owned:
             return exchange_pb2.OrderId(oid=-1)
-        
-        print("3")
+
         # Send order to the exchange. Once the order is queued,
         # remove the stocks and charge a fee from the user's account
         response = self.stub.SendOrder(request=request)
 
-        print("3.5")
         if response.oid == -1:
             return exchange_pb2.OrderId(oid=-1)
 
-        print("4")
         self.uid_to_user[request.uid].balance -= FEE
-        print("5")
         self.broker_balance += FEE - c.EXCHANGE_FEE
-        print("7")
         self.oid_to_order[response.oid] = Order(response.oid,
                                                 request.uid,
                                                 request.ticker,
