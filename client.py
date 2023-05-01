@@ -70,7 +70,7 @@ class BrokerClient():
         self.SendOrder(order_type, ticker, quantity, price, self.uid)
 
 if __name__ == "__main__":
-    channel = grpc.insecure_channel('CHANGE THIS')
+    channel = grpc.insecure_channel(c.BROKER_IP[1] + ':' + c.BROKER_IP[0])
     client = BrokerClient(channel)
     while True:
         print("[1] Register\n[2] Buy/Sell")
@@ -81,4 +81,3 @@ if __name__ == "__main__":
             client.Register(uid)
         else:
             client.make_order()
-

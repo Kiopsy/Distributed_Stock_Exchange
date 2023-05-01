@@ -169,7 +169,7 @@ class Broker(BrokerServiceServicer):
         while True:
             fill = self.stub.OrderFill(exchange_pb2.UserInfo(uid=self.uid))
             if fill.oid == -1:
-                time.sleep(0.2)
+                time.sleep(0.2) # invalid order
                 continue
             order = self.oid_to_order[fill.oid]
             self.uid_to_user[order.uid].fills.append((order.oid, fill.amount_filled))
@@ -185,16 +185,23 @@ class Broker(BrokerServiceServicer):
                 self.uid_to_user[order.uid].oids.pop(order.oid)
 
             time.sleep(0.1) # latency?
-    
 
 if __name__ == "__main__":
     broker = Broker()
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    add_BrokerServiceServicer_to_server(broker, server)
+    server.add_insecure_port(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
+    server.start()
+    print(f"Broker server initialized at {c.BROKER_IP[1]} on port {c.BROKER_IP[0]}")
+    server.wait_for_termination()
+    """"
     while True:
         _ = input("[Enter]: ")
         # broker.stub.DepositCash(exchange_pb2.Deposit(uid=0, amount=100))
         oid_1 = broker.stub.SendOrder(exchange_pb2.OrderInfo(ticker = "GOOGL", quantity = 10, price = 100, uid = c.USER_KEYS[0], type = exchange_pb2.OrderType.BID))
         oid_2 = broker.stub.SendOrder(exchange_pb2.OrderInfo(ticker = "GOOGL", quantity = 5, price = 100, uid = c.USER_KEYS[0], type = exchange_pb2.OrderType.ASK))
         broker.stub.CancelOrder(exchange_pb2.OrderId(oid=oid_1.oid))
+    """
         
     # threading.Thread(target=broker.receive_fills).start()
     # deposit a dollar as a test
