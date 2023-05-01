@@ -122,6 +122,9 @@ class Broker(BrokerServiceServicer):
 
         if cost + FEE > balance:
             return exchange_pb2.OrderId(oid=-1)
+
+        request_uid = request.uid
+        request.uid = self.uid
         response = self.stub.SendOrder(request=request)
 
         if not response:
@@ -136,7 +139,7 @@ class Broker(BrokerServiceServicer):
         self.uid_to_user[request.uid].balance -= cost + FEE
         self.broker_balance += FEE - c.EXCHANGE_FEE
         self.oid_to_order[response.oid] = Order(response.oid, 
-                                                request.uid,
+                                                request_uid,
                                                 request.quantity,
                                                 request.ticker,
                                                 request.price,
@@ -164,6 +167,8 @@ class Broker(BrokerServiceServicer):
 
         # Send order to the exchange. Once the order is queued,
         # remove the stocks and charge a fee from the user's account
+        request_uid = request.uid
+        request.uid = self.uid
         response = self.stub.SendOrder(request=request)
 
         if response.oid == -1:
@@ -172,7 +177,7 @@ class Broker(BrokerServiceServicer):
         self.uid_to_user[request.uid].balance -= FEE
         self.broker_balance += FEE - c.EXCHANGE_FEE
         self.oid_to_order[response.oid] = Order(response.oid,
-                                                request.uid,
+                                                request_uid,
                                                 request.ticker,
                                                 request.quantity,
                                                 request.price,

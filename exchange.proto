@@ -49,7 +49,7 @@ enum OrderType {
 }
 
 message UserStocks {
-    bytes pickle = 1;
+  bytes pickle = 1;
 }
 
 message Deposit {

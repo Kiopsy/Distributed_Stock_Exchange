@@ -104,7 +104,6 @@ class ExchangeServiceServicer(object):
 
     def SendOrder(self, request, context):
         """From institutions to exchange 
-        TODO
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -396,7 +395,7 @@ class BrokerServiceStub(object):
         self.SendOrder = channel.unary_unary(
                 '/exchange.BrokerService/SendOrder',
                 request_serializer=exchange__pb2.OrderInfo.SerializeToString,
-                response_deserializer=exchange__pb2.Result.FromString,
+                response_deserializer=exchange__pb2.OrderId.FromString,
                 )
         self.CancelOrder = channel.unary_unary(
                 '/exchange.BrokerService/CancelOrder',
@@ -412,6 +411,11 @@ class BrokerServiceStub(object):
                 '/exchange.BrokerService/DepositCash',
                 request_serializer=exchange__pb2.Deposit.SerializeToString,
                 response_deserializer=exchange__pb2.Empty.FromString,
+                )
+        self.GetStocks = channel.unary_unary(
+                '/exchange.BrokerService/GetStocks',
+                request_serializer=exchange__pb2.UserId.SerializeToString,
+                response_deserializer=exchange__pb2.UserStocks.FromString,
                 )
         self.OrderFill = channel.unary_unary(
                 '/exchange.BrokerService/OrderFill',
@@ -466,6 +470,12 @@ class BrokerServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetStocks(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def OrderFill(self, request, context):
         """From broker to user
         """
@@ -494,7 +504,7 @@ def add_BrokerServiceServicer_to_server(servicer, server):
             'SendOrder': grpc.unary_unary_rpc_method_handler(
                     servicer.SendOrder,
                     request_deserializer=exchange__pb2.OrderInfo.FromString,
-                    response_serializer=exchange__pb2.Result.SerializeToString,
+                    response_serializer=exchange__pb2.OrderId.SerializeToString,
             ),
             'CancelOrder': grpc.unary_unary_rpc_method_handler(
                     servicer.CancelOrder,
@@ -510,6 +520,11 @@ def add_BrokerServiceServicer_to_server(servicer, server):
                     servicer.DepositCash,
                     request_deserializer=exchange__pb2.Deposit.FromString,
                     response_serializer=exchange__pb2.Empty.SerializeToString,
+            ),
+            'GetStocks': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetStocks,
+                    request_deserializer=exchange__pb2.UserId.FromString,
+                    response_serializer=exchange__pb2.UserStocks.SerializeToString,
             ),
             'OrderFill': grpc.unary_unary_rpc_method_handler(
                     servicer.OrderFill,
@@ -590,7 +605,7 @@ class BrokerService(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/exchange.BrokerService/SendOrder',
             exchange__pb2.OrderInfo.SerializeToString,
-            exchange__pb2.Result.FromString,
+            exchange__pb2.OrderId.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -642,6 +657,23 @@ class BrokerService(object):
         return grpc.experimental.unary_unary(request, target, '/exchange.BrokerService/DepositCash',
             exchange__pb2.Deposit.SerializeToString,
             exchange__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetStocks(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/exchange.BrokerService/GetStocks',
+            exchange__pb2.UserId.SerializeToString,
+            exchange__pb2.UserStocks.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
