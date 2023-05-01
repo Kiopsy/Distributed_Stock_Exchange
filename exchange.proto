@@ -33,7 +33,7 @@ service BrokerService {
   rpc LogOut(Empty) returns (Result) {} // may or may not end up using log in / log out
 
   rpc Register(UserInfo) returns (Result) {}
-  rpc SendOrder(OrderInfo) returns (Result) {}
+  rpc SendOrder(OrderInfo) returns (OrderId) {}
   rpc CancelOrder(CancelRequest) returns (Result) {}
   rpc GetBalance(UserId) returns (Balance) {}
   rpc DepositCash(Deposit) returns (Empty) {}

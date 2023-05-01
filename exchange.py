@@ -1,4 +1,4 @@
-import socket, threading, time, grpc, pickle, os
+import socket, threading, time, grpc, pickle, os, sys, signal, multiprocessing
 import exchange_pb2
 from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_ExchangeServiceServicer_to_server
 from helpers import ThreadSafeSet
@@ -8,19 +8,6 @@ from limit_order_book import LimitOrderBook
 from database import Database, User
 from collections import defaultdict, deque
 from typing import Dict
-
-# func "serve": starts an exchange server
-def serve(id: int) -> None:
-    exchange = ExchangeServer(id)
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    add_ExchangeServiceServicer_to_server(exchange, server)
-    server.add_insecure_port(exchange.HOST + ':' + str(exchange.PORT))
-    server.start()
-    exchange.sprint(f"Server initialized at {exchange.HOST} on port {exchange.PORT}")
-    time.sleep(c.CONNECTION_WAIT_TIME)
-    exchange.connect()
-    exchange.heartbeat_thread.start()
-    server.wait_for_termination()
         
 # class that defines an exchange and its server
 class ExchangeServer(ExchangeServiceServicer):
@@ -307,16 +294,12 @@ class ExchangeServer(ExchangeServiceServicer):
         # retreive orderbook associated with the stock's ticker
         book = self.db.get_db()["orderbooks"][ticker]
         
-        # TODO: @Kiopsy @eezike we need to synchronize this with Paxos
         new_oid = self.db.get_db()["oid_count"]
         self.db.get_db()["oid_count"] += 1
 
-        # TODO: this may also need to get synchronized using PAXOS; if so just write to db
         self.db.get_db()["oid_to_ticker"][new_oid] =  ticker
         
         filled_orders = book.add_order(side, price, quantity, uid, new_oid)
-        
-        # self.filled_orders.extend(filled_orders)
         
         for filled_order in filled_orders:
             bid_uid, ask_uid, execution_price, executed_quantity, bid_oid, ask_oid = filled_order[0], filled_order[1], filled_order[2], filled_order[3], filled_order[4], filled_order[5]
@@ -327,11 +310,9 @@ class ExchangeServer(ExchangeServiceServicer):
             self.db.get_db()["uid_to_user_dict"][bid_uid].ticker_to_amount[ticker] = self.db.get_db()["uid_to_user_dict"][bid_uid].ticker_to_amount.get(ticker, 0) + executed_quantity
             self.db.get_db()["uid_to_user_dict"][bid_uid].filled_oids.append((bid_oid, execution_price, executed_quantity))
 
-            
             self.db.get_db()["uid_to_user_dict"][ask_uid].balance += executed_quantity * execution_price
             self.db.get_db()["uid_to_user_dict"][ask_uid].ticker_to_amount[ticker] -= executed_quantity
             self.db.get_db()["uid_to_user_dict"][ask_uid].filled_oids.append((ask_oid, execution_price, executed_quantity))
-
         
         self.db.store_data()   
 
@@ -339,7 +320,6 @@ class ExchangeServer(ExchangeServiceServicer):
 
         return new_oid 
 
-    # WIP
     # rpc func "CancelOrder": 
     @connection_required
     def CancelOrder(self, request, context) -> exchange_pb2.Result:
@@ -382,7 +362,6 @@ class ExchangeServer(ExchangeServiceServicer):
                 
         return exchange_pb2.Result(result = res)
 
-    # WIP
     # rpc func "OrderFill":
     @connection_required
     def OrderFill(self, request, context) -> exchange_pb2.FillInfo:
@@ -413,4 +392,57 @@ class ExchangeServer(ExchangeServiceServicer):
     @connection_required
     def Ping(self, request, context):
         return exchange_pb2.Empty()
+
+# func "serve": starts an exchange server
+def serve(id):
+    exchange = ExchangeServer(id)
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    add_ExchangeServiceServicer_to_server(exchange, server)
+    server.add_insecure_port(exchange.HOST + ':' + str(exchange.PORT))
+    server.start()
+    exchange.sprint(f"Server initialized at {exchange.HOST} on port {exchange.PORT}")
+    time.sleep(3)
+    exchange.connect()
+    exchange.heartbeat_thread.start()
+    server.wait_for_termination()
+
+# clean control c exiting
+def sigint_handler(signum, frame):
+    # terminate all child processes
+    for process in multiprocessing.active_children():
+        process.terminate()
+    # exit the main process without raising SystemExit
+    try:
+        sys.exit(0)
+    except SystemExit:
+        pass
+
+def main():
+    # Allow for server creation by id through command-line args
+    if len(sys.argv) == 2:
+        try:
+            machine_id = int(sys.argv[1])
+            connection_wait_time = 5
+            serve(machine_id)
+        except KeyboardInterrupt:
+            pass
+    else:
+        processes = []
     
+        # Spawns a new process for each server that we have to run 
+        for i in range(c.NUM_SERVERS):
+            process = multiprocessing.Process(target=serve, args=(i, ))
+            processes.append(process)
+
+        # Allow for ctrl-c exiting
+        signal.signal(signal.SIGINT, sigint_handler)
+
+        # Starts each process
+        for process in processes:
+            process.start()
+
+if __name__ == '__main__':
+    # Get your own hostname:
+    hostname = socket.gethostbyname(socket.gethostname())
+    print("Hostname:", hostname)
+    main()
