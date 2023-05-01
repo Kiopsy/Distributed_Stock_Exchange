@@ -64,7 +64,6 @@ class Broker(BrokerServiceServicer):
         return exchange_pb2.Empty()
 
     def SendOrder(self, request, context):
-        print("Gets here")
         if request.type == exchange_pb2.OrderType.BID:
             return self.handle_bid(request)
         else:
@@ -187,27 +186,33 @@ class Broker(BrokerServiceServicer):
                                                 request.price,
                                                 exchange_pb2.OrderType.ASK)
         
-        self.uid_to_user[request.uid].ticker_balances[request.ticker] -= request.quantity
+        self.uid_to_user[request_uid].ticker_balances[request.ticker] -= request.quantity
         return exchange_pb2.OrderId(oid=response.oid)
 
     def receive_fills(self):
+        print("Receive fills thread started")
         while True:
             fill = self.stub.OrderFill(exchange_pb2.UserInfo(uid=self.uid))
+            if not fill:
+                time.sleep(1)
+                continue
             if fill.oid == -1:
+                # print("Received no fill")
                 time.sleep(0.2) # invalid order
                 continue
+            print(f"Received a fill with oid {fill.oid}")
             order = self.oid_to_order[fill.oid]
             self.uid_to_user[order.uid].fills.append((order.oid, fill.amount_filled))
             self.oid_to_order[fill.oid].amount -= fill.amount_filled
             if order.side == exchange_pb2.OrderType.BID:
                 shares = self.uid_to_user[order.uid].ticker_balances.get(order.ticker, 0)
-                self.uid_to_user[order.uid].ticker_balances = shares + fill.amount_filled
+                self.uid_to_user[order.uid].ticker_balances[order.ticker] = shares + fill.amount_filled
             else:
                 self.uid_to_user[order.uid].balance += fill.amount_filled * fill.execution_price
 
             print(f"User id {order.uid} had a filled order")
 
-            time.sleep(0.1) # latency?
+            time.sleep(.1) # latency?
 
 if __name__ == "__main__":
     broker = Broker()
@@ -216,6 +221,9 @@ if __name__ == "__main__":
     server.add_insecure_port(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
     server.start()
     print(f"Broker server initialized at {c.BROKER_IP[1]} on port {c.BROKER_IP[0]}")
+    t = threading.Thread(target=broker.receive_fills)
+    t.daemon = True
+    t.start()
     server.wait_for_termination()
     """"
     while True:
@@ -226,6 +234,5 @@ if __name__ == "__main__":
         broker.stub.CancelOrder(exchange_pb2.OrderId(oid=oid_1.oid))
     """
         
-    threading.Thread(target=broker.receive_fills).start()
     # deposit a dollar as a test
     # broker.stub.DepositCash(request=exchange_pb2.Deposit(uid=0, amount=100))

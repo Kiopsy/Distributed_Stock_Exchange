@@ -66,6 +66,9 @@ class LimitOrderBook:
     def get_orderbook(self):
         return ([heap_el[2] for heap_el in self.bids], [heap_el[2] for heap_el in self.asks[:]])
     
+    def print_orderbook(self):
+        print(f"Orderbook {self.ticker}: [BIDS] {[heap_el[2] for heap_el in self.bids]} [ASKS] {[heap_el[2] for heap_el in self.asks[:]]}")
+    
     def cancel_order_by_oid(self, cancel_oid):
         did_delete = False
         
@@ -110,7 +113,7 @@ class LimitOrderBook:
 
             if -self.bids[0][0] >= self.asks[0][0]:  # Check if top bid price is >= top ask price
                 executed_quantity = min(bid.quantity, ask.quantity)
-                execution_price = (bid.price + ask.price) / 2
+                execution_price = int((bid.price + ask.price) / 2)
 
                 # Albert: we do not check if users have enough balance and stocks for the transaction because we just allow shorting/negative amounts of stock or money 
                 bid.quantity -= executed_quantity
