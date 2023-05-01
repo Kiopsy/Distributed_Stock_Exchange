@@ -4,9 +4,10 @@ from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_
 from helpers import ThreadSafeSet
 import constants as c
 from concurrent import futures
-from limit_order_book import LimitOrderBook, User
-from database import Database
+from limit_order_book import LimitOrderBook
+from database import Database, User
 from collections import defaultdict, deque
+from typing import Dict
 
 # func "serve": starts an exchange server
 def serve(id: int) -> None:
@@ -60,19 +61,24 @@ class ExchangeServer(ExchangeServiceServicer):
             os.makedirs(c.PKL_DIR)
         self.PKL_FILE_NAME = f"./{c.PKL_DIR}/server{self.ID}.pkl"
         
-        # TREAT LIKE A DICTIONARY; load the database (create if it does not exist)
+        # load the database (create if it does not exist)
         self.db = Database(filename=self.PKL_FILE_NAME)
     
         # thread safe set that tracks if a ballot id has been seen
         self.seen_ballots = ThreadSafeSet()
-
-        # keep track of filled orders. user -> a queue of their filled orders
-        self.order_fills = defaultdict(deque)
+        
 
     # func "sprint": prints within a server
     def sprint(self, *args, **kwargs) -> None:
         if not self.SILENT:
             print(f"Server {self.ID}:", *args, **kwargs)
+
+    # func "stop_server": stop the machine's heartbeat by setting stop_event
+    def stop_server(self):
+        self.stop_event.set() 
+        self.heartbeat_thread.join()
+
+    # (RE)CONNECTION SECTION
 
     # func "connect": connect current server to peers servers
     def connect(self) -> bool:
@@ -95,6 +101,7 @@ class ExchangeServer(ExchangeServiceServicer):
                     self.sprint("Received Error in Connect:", e)
                     self.peer_alive[port] = False
 
+        # run a leader election if the server has no primary
         if self.primary_port == -1:
             self.leader_election()
 
@@ -102,7 +109,7 @@ class ExchangeServer(ExchangeServiceServicer):
         self.sprint("Connected", self.peer_alive)
         return self.connected
     
-    # func "revive": incorporate the receieved revive info
+    # func "revive": revive's a server based on the primary's commit log
     def revive(self, revive_info: exchange_pb2.ReviveInfo) -> None:
         self.primary_port = revive_info.primary_port
 
@@ -140,15 +147,8 @@ class ExchangeServer(ExchangeServiceServicer):
                 updates = True)
         else:
             return exchange_pb2.ReviveInfo(updates = False)
-
+    
     # HEARTBEAT SECTION
-
-    # func "leader_election": uses the bully algorithm to elect the machine with the lowest port as the leader
-    def leader_election(self) -> int:
-        alive_ports = (port for port, alive in [*self.peer_alive.items(), (self.PORT, True)] if alive)
-        self.primary_port = min(alive_ports)
-        self.sprint(f"New primary: {self.primary_port}")
-        return self.primary_port
     
     # func "receive_heartbeat": ask all other machines if they are alive by asking of
     def receive_heartbeat(self) -> None:
@@ -174,23 +174,21 @@ class ExchangeServer(ExchangeServiceServicer):
         for port in self.peer_stubs:
             threading.Thread(target = individual_heartbeat, args=(port, ), daemon=True).start()
 
-    # func "stop_machine": stop the machine's heartbeat by setting stop_event
-    def stop_machine(self):
-        self.stop_event.set() 
-        self.heartbeat_thread.join()
-
     # rpc func "RequestHeartbeat": takes Empty as input and retuns its port
     def RequestHeartbeat(self, request, context):
         return exchange_pb2.HeartbeatResponse(port=self.PORT)
-    
-    # func "revive": revive's a server based on the primary's commit log
-    def revive(self, revive_info):
-        pass
 
-    # CONSENSUS VOTING SECTION
+    # func "leader_election": uses the bully algorithm to elect the machine with the lowest port as the leader
+    def leader_election(self) -> int:
+        alive_ports = (port for port, alive in [*self.peer_alive.items(), (self.PORT, True)] if alive)
+        self.primary_port = min(alive_ports)
+        self.sprint(f"New primary: {self.primary_port}")
+        return self.primary_port
+
+    # CONSENSUS VOTING (PAXOS) SECTION
 
     # func "send_commit_proposal" : proposes a commit, if all peers agree on it: it is commited; else: it is rejected
-    def send_commit_proposal(self, commit) -> bool:
+    def send_commit_proposal(self, commit: str) -> bool:
 
         # sets the ballot id to the largest unseen ballot
         ballot_id = self.seen_ballots.max() + 1
@@ -229,13 +227,6 @@ class ExchangeServer(ExchangeServiceServicer):
 
         return approved
 
-    # func "write_to_log": writes a commit to the log file
-    def write_to_log(self, commit, ballot_id):
-        # TODO: if not connected, wait until connected to add these commits
-        self.sprint(f"Added commit {commit} w/ ballot_id {ballot_id}")
-        self.log_file.write(f"{ballot_id}# {commit}\n")
-        self.log_file.flush()
-
     # rpc func "ProposeCommit": takes a CommitRequest/Proposal as input, returns an approving vote iff the ballot id is unseen
     def ProposeCommit(self, request, context):
         approved = request.ballot_id not in self.seen_ballots
@@ -261,13 +252,21 @@ class ExchangeServer(ExchangeServiceServicer):
 
         return exchange_pb2.Empty()
     
+    # func "write_to_log": writes a commit to the log file
+    def write_to_log(self, commit, ballot_id):
+        # TODO: if not connected, wait until connected to add these commits
+        self.sprint(f"Added commit {commit} w/ ballot_id {ballot_id}")
+        self.log_file.write(f"{ballot_id}# {commit}\n")
+        self.log_file.flush()
+
+    # func "vote_on_client_request": initiates a vote between servers
     def vote_on_client_request(self, commit_state: str) -> bool:
-        success = False
+
         for _ in range(c.MAX_VOTE_ATTEMPTS):
             if self.send_commit_proposal(commit_state):
-                success = True
-                break
-        return success
+                return True
+                
+        return False
 
     # CLIENT FUNCTIONS SECTION
 
@@ -295,40 +294,91 @@ class ExchangeServer(ExchangeServiceServicer):
         uid = request.uid
         side = "bid" if request.type == exchange_pb2.OrderType.BID else "ask"
 
+        # PAXOS
+        state_str = f"""self.send_order_helper('{ticker}', {quantity}, {price}, {uid}, '{side}')"""
+        if not self.vote_on_client_request(state_str):
+            return exchange_pb2.OrderId(oid=-1)
+
+        new_oid = self.send_order_helper(ticker, quantity, price, uid, side)
+
+        return exchange_pb2.OrderId(oid=new_oid)
+    
+    def send_order_helper(self, ticker, quantity, price, uid, side):
         # retreive orderbook associated with the stock's ticker
         book = self.db.get_db()["orderbooks"][ticker]
         
-        res = book.add_order(side, price, quantity, uid) # after matches are made 
+        # TODO: @Kiopsy @eezike we need to synchronize this with Paxos
+        new_oid = self.db.get_db()["oid_count"]
+        self.db.get_db()["oid_count"] += 1
 
-        self.db.get_db()["orderbooks"][ticker] = book
+        # TODO: this may also need to get synchronized using PAXOS; if so just write to db
+        self.db.get_db()["oid_to_ticker"][new_oid] =  ticker
+        
+        filled_orders = book.add_order(side, price, quantity, uid, new_oid)
+        
+        # self.filled_orders.extend(filled_orders)
+        
+        for filled_order in filled_orders:
+            bid_uid, ask_uid, execution_price, executed_quantity, bid_oid, ask_oid = filled_order[0], filled_order[1], filled_order[2], filled_order[3], filled_order[4], filled_order[5]
+
+            
+            self.db.get_db()["uid_to_user_dict"][bid_uid].balance -= executed_quantity * execution_price
+
+            self.db.get_db()["uid_to_user_dict"][bid_uid].ticker_to_amount[ticker] = self.db.get_db()["uid_to_user_dict"][bid_uid].ticker_to_amount.get(ticker, 0) + executed_quantity
+            self.db.get_db()["uid_to_user_dict"][bid_uid].filled_oids.append((bid_oid, execution_price, executed_quantity))
+
+            
+            self.db.get_db()["uid_to_user_dict"][ask_uid].balance += executed_quantity * execution_price
+            self.db.get_db()["uid_to_user_dict"][ask_uid].ticker_to_amount[ticker] -= executed_quantity
+            self.db.get_db()["uid_to_user_dict"][ask_uid].filled_oids.append((ask_oid, execution_price, executed_quantity))
+
+        
+        self.db.store_data()   
+
+        self.sprint(book.get_orderbook())
+
+        return new_oid 
 
     # WIP
     # rpc func "CancelOrder": 
     @connection_required
     def CancelOrder(self, request, context) -> exchange_pb2.Result:
         # request = exchange_pb2.OrderId
-        return exchange_pb2.Result(result=True)
+        if request.oid not in self.db.get_db()["oid_to_ticker"].keys():
+            return exchange_pb2.Result(result=False)
+        
+        ticker = self.db.get_db()["oid_to_ticker"][request.oid]
     
-    # WIP
+        # PAXOS
+        state_str = f'self.db.get_db()["orderbooks"]["{ticker}"].cancel_order_by_oid({request.oid})'
+        if not self.vote_on_client_request(state_str):
+            return exchange_pb2.Result(result=False, message = "Servers failed to reach agreement on cancel request")
+
+        book = self.db.get_db()["orderbooks"][ticker]
+        result = book.cancel_order_by_oid(request.oid)
+        self.db.store_data()
+
+        self.sprint(book.get_orderbook())
+        return exchange_pb2.Result(result=result)
+    
+    # WIP TODO
     # rpc func "GetOrderList": 
     # could probably skip this for now tbh
     @connection_required
     def GetOrderList(self, request, context) -> exchange_pb2.OrderInfo:
-        # request = exchange_pb2.Empty
-        pass
+        book = self.db.get_db()["orderbooks"]["GOOGL"]
+        return book.get_orderbook()
 
-    # WIP
+
     # rpc func "DepositCash": 
     @connection_required
     def DepositCash(self, request, context) -> exchange_pb2.Result:
         res = False
-        if request.uid in self.db.get_db()["client_balance"]:
-            state_str = f"self.db.get_db()['client_balance'][{request.uid}] += {request.amount}"
-            success = self.vote_on_client_request(state_str)
-            if success:
-                self.db.get_db()["client_balance"][request.uid] += request.amount
-                self.db.store_data()
-                res = True  
+        state_str = f"self.db.get_db()['client_balance'][{request.uid}] += {request.amount}"
+        if request.uid in self.db.get_db()["client_balance"] and self.vote_on_client_request(state_str):
+            self.db.get_db()["client_balance"][request.uid] += request.amount
+            self.db.store_data()
+            res = True  
                 
         return exchange_pb2.Result(result = res)
 
@@ -336,9 +386,31 @@ class ExchangeServer(ExchangeServiceServicer):
     # rpc func "OrderFill":
     @connection_required
     def OrderFill(self, request, context) -> exchange_pb2.FillInfo:
-        pass
+        failure = exchange_pb2.FillInfo(oid=-1, 
+                                        amount_filled=-1, 
+                                        execution_price=-1)
 
-    # rpc func "Ping": 
+        if request.uid not in self.db.get_db()["uid_to_user_dict"].keys():
+            return failure
+        
+        user = self.db.get_db()["uid_to_user_dict"][request.uid]
+        if len(user.filled_oids) == 0:
+            return failure 
+        
+        # PAXOS
+        state_str = f""""self.db.get_db()["uid_to_user_dict"][{request.uid}].filled_oids.popleft()"""
+        if not self.vote_on_client_request(state_str):
+            return failure
+
+        oid, execution_price, quantity = user.filled_oids.popleft()
+        self.db.store_data()
+
+        return exchange_pb2.FillInfo(oid=oid, 
+                                     amount_filled=quantity, 
+                                     execution_price=execution_price)
+
+    # rpc func "Ping": allows client to 
     @connection_required
     def Ping(self, request, context):
         return exchange_pb2.Empty()
+    

@@ -85,7 +85,7 @@ class nFaultStub:
                     response = func(*args, **kwargs)
                     return response
                 except Exception as e: # On any failure, switch stub and backup stub
-                    print(f"An error occurred while calling {name}")
+                    print(f"An error occurred while calling {name}: {e}")
                     self.stub_dict, self.backup_stub_dict = self.backup_stub_dict, self.stub_dict
                     if i != len(self.SERVERS) - 1:
                         print(f"Switching to backup connected to port {self.stub_dict['port']}")
@@ -130,7 +130,7 @@ def state_machine_encoder(operation, keys, value = None, value_type = None):
     return operation + c.DIVIDER + str(keys) + c.DIVIDER + str(value) + c.DIVIDER + str(value_type)
 
 def state_machine_decoder(encoded_str):
-    operation, keys, value, value_type = encoded_str
+    operation, keys, value, value_type = encoded_str.split(c.DIVIDER)
 
     operation = int(operation)
     keys = exec(keys)

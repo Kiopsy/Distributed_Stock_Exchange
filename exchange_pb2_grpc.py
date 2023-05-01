@@ -103,7 +103,8 @@ class ExchangeServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def SendOrder(self, request, context):
-        """From institutions to exchange
+        """From institutions to exchange 
+        TODO
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -395,7 +396,7 @@ class BrokerServiceStub(object):
         self.SendOrder = channel.unary_unary(
                 '/exchange.BrokerService/SendOrder',
                 request_serializer=exchange__pb2.OrderInfo.SerializeToString,
-                response_deserializer=exchange__pb2.OrderId.FromString,
+                response_deserializer=exchange__pb2.Result.FromString,
                 )
         self.CancelOrder = channel.unary_unary(
                 '/exchange.BrokerService/CancelOrder',
@@ -493,7 +494,7 @@ def add_BrokerServiceServicer_to_server(servicer, server):
             'SendOrder': grpc.unary_unary_rpc_method_handler(
                     servicer.SendOrder,
                     request_deserializer=exchange__pb2.OrderInfo.FromString,
-                    response_serializer=exchange__pb2.OrderId.SerializeToString,
+                    response_serializer=exchange__pb2.Result.SerializeToString,
             ),
             'CancelOrder': grpc.unary_unary_rpc_method_handler(
                     servicer.CancelOrder,
@@ -589,7 +590,7 @@ class BrokerService(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/exchange.BrokerService/SendOrder',
             exchange__pb2.OrderInfo.SerializeToString,
-            exchange__pb2.OrderId.FromString,
+            exchange__pb2.Result.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

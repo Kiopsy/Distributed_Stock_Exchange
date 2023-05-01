@@ -1,7 +1,15 @@
-from collections import defaultdict
+from collections import defaultdict, deque
 import pickle
 from limit_order_book import LimitOrderBook
 import constants as c
+from typing import Dict
+
+class User:
+    def __init__(self, uid: int, balance: int):
+        self.uid: int = uid
+        self.balance: int = balance
+        self.ticker_to_amount: Dict[str, int] = {}
+        self.filled_oids = deque()
 
 # simply use this class like it is a dictionary, it will store data automatically
 class Database():
@@ -32,7 +40,10 @@ class Database():
         except:
             self.db = {
                 "orderbooks" : defaultdict(LimitOrderBook),
-                "client_balance": {client: 0 for client in c.USER_KEYS}
+                "client_balance": {client: 0 for client in c.USER_KEYS},
+                "oid_count": 0,
+                "oid_to_ticker": {},
+                "uid_to_user_dict": {uid: User(uid, balance=0) for uid in c.USER_KEYS},
             }
         return self.db
     

@@ -16,7 +16,8 @@ service ExchangeService {
   // Client (broker) functions
   rpc Ping (Empty) returns (Empty) {}
 
-  // From institutions to exchange
+  // From institutions to exchange 
+  // TODO
   rpc SendOrder(OrderInfo) returns (OrderId) {}
   rpc CancelOrder(OrderId) returns (Result) {}
   rpc GetOrderList(Empty) returns (OrderInfo) {}
@@ -32,7 +33,7 @@ service BrokerService {
   rpc LogOut(Empty) returns (Result) {} // may or may not end up using log in / log out
 
   rpc Register(UserInfo) returns (Result) {}
-  rpc SendOrder(OrderInfo) returns (OrderId) {}
+  rpc SendOrder(OrderInfo) returns (Result) {}
   rpc CancelOrder(CancelRequest) returns (Result) {}
   rpc GetBalance(UserId) returns (Balance) {}
   rpc DepositCash(Deposit) returns (Empty) {}
@@ -41,14 +42,20 @@ service BrokerService {
   rpc OrderFill(UserInfo) returns (FillInfo) {}
 }
 
+
+enum OrderType {
+  BID = 0;
+  ASK = 1; 
+}
+
 message Deposit {
   int32 uid = 1;
   int32 amount = 2;
 }
 
 message CancelRequest {
-  int64 uid = 1;
-  int64 oid = 2;
+  int32 uid = 1;
+  int32 oid = 2;
 }
 
 message OrderId {
@@ -80,6 +87,7 @@ message CommitVote {
 
 message Result {
   bool result = 1;
+  string message = 2;
 }
 
 message Empty {}
@@ -95,6 +103,7 @@ message UserId {
 message FillInfo {
   int32 oid = 1;
   int32 amount_filled = 2;
+  int32 execution_price = 3;
 }
 
 message OrderInfo {
@@ -102,10 +111,6 @@ message OrderInfo {
   int32 quantity = 2;
   int32 price = 3;
   int32 uid = 4;
-  enum OrderType {
-    BID = 0;
-    ASK = 1; 
-  }
   OrderType type = 5;
 }
 
