@@ -14,7 +14,7 @@ class BrokerClient():
         result = self.stub.Register(exchange_pb2.UserInfo(uid=int(uid)))
         if result.result:
             print("Successfully registered")
-            self.uid = uid
+            self.uid = int(uid)
         else:
             print("Error while registering")
 
@@ -30,11 +30,11 @@ class BrokerClient():
         
     def SendOrder(self, order_type, ticker, quantity, price, uid) -> None:
 
-        result = self.stub.SendOrder(exchange_pb2.OrderInfo(order_type=order_type,
-                                                            ticker=ticker, 
+        result = self.stub.SendOrder(exchange_pb2.OrderInfo(ticker=ticker, 
                                                             quantity=quantity,
                                                             price=price,
-                                                            uid=self.uid))
+                                                            uid=self.uid,
+                                                            type=order_type))
         if result.oid == -1:
             print("Order failed!")
         else:
