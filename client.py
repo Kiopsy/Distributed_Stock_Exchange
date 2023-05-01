@@ -1,7 +1,7 @@
 import socket, threading, time, grpc, os
 import exchange_pb2
 from exchange_pb2_grpc import BrokerServiceStub
-from constants import Constants as c
+import constants as c
 from typing import Dict, List, Tuple, Set, Optional
 from concurrent import futures
 
@@ -43,31 +43,42 @@ class BrokerClient():
     def CancelOrder(self, oid) -> None:
         self.stub.CancelOrder(exchange_pb2.CancelRequest(uid=self.uid, oid=oid))
 
+    # stashing code for later; ignore
+    def make_order(self) -> None:
+        print("Would you like to buy or sell a stock?")
+        print("[1] Buy")
+        print("[2] Sell")
+        inp = input("> ")
+        order_type = None
+        if inp == "1":
+            order_type = exchange_pb2.OrderType.BID
+        elif inp == "2":
+            order_type = exchange_pb2.OrderType.ASK
+        else:
+            print("Please enter 1 or 2.")
+            return
+
+        print("For which stock?")
+        ticker = input("> ")
+
+        print("And how many shares?")
+        quantity = int(input("> "))
+
+        print("For what price for each share?")
+        price = int(input("> "))
+        # send information to the broker client
+        self.SendOrder(order_type, ticker, quantity, price, self.uid)
+
 if __name__ == "__main__":
-    # Need this thread + another thread for receiving filled orders
-    pass
+    channel = grpc.insecure_channel('CHANGE THIS')
+    client = BrokerClient(channel)
+    while True:
+        print("[1] Register\n[2] Buy/Sell")
+        inp = input("> ")
+        if inp == '1':
+            print("What uid?")
+            uid = input("> ")
+            client.Register(uid)
+        else:
+            client.make_order()
 
-# stashing code for later; ignore
-def make_order() -> None:
-    print("Would you like to buy or sell a stock?")
-    print("[1] Buy")
-    print["[2] Sell"]
-    inp = input("> ")
-    order_type = None
-    if inp == "1":
-        order_type = exchange_pb2.OrderType.BID
-    elif inp == "2":
-        order_type = exchange_pb2.OrderType.ASK
-    else:
-        print("Please enter 1 or 2.")
-        return
-
-    print("For which stock?")
-    ticker = input("> ")
-
-    print("And how many shares?")
-    quantity = int(input("> "))
-
-    print("For what price for each share?")
-    price = int(input("> "))
-    # send information to the broker client
