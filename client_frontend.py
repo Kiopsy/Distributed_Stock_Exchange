@@ -93,81 +93,95 @@ class BrokerClient():
 
 import tkinter as tk
 from tkinter import messagebox
+import tkinter.font as tkfont
+import os
 
 class BrokerClientUI(tk.Tk):
     def __init__(self, broker_client):
         super().__init__()
         self.title("Broker Client")
-        self.geometry("400x300")
+        self.geometry("500x600")
+        self.configure(bg="#f0f0f0")
         self.broker_client = broker_client
 
         self.create_widgets()
                     
     def create_widgets(self):
-        self.logo_image = PhotoImage(file="/Users/feiyang/Documents/GitHub/cs262-final-project/logo.png")
-        self.logo_image = self.logo_image.subsample(2, 2)  # Adjust the numbers (2, 2) to resize the logo
-        self.logo_label = tk.Label(self, image=self.logo_image)
-        self.logo_label.grid(row=0, column=0, columnspan=2)
+        # Set up fonts and colors
+        self.title_font = tkfont.Font(family="Helvetica", size=18, weight="bold")
+        self.label_font = tkfont.Font(family="Helvetica", size=14)
+        self.entry_font = tkfont.Font(family="Helvetica", size=12)
+        self.button_font = tkfont.Font(family="Helvetica", size=14, weight="bold")
+        self.status_font = tkfont.Font(family="Helvetica", size=12)
+        self.primary_color = "#4a86e8"
 
-        self.uid_label = tk.Label(self, text="User ID:")
-        self.uid_entry = tk.Entry(self)
-        self.uid_label.grid(row=1, column=0)
-        self.uid_entry.grid(row=1, column=1)
 
-        self.register_button = tk.Button(self, text="Register", command=self.register)
-        self.register_button.grid(row=2, column=0, columnspan=2)
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        image_path = os.path.join(script_dir, "logo.png")
+        self.logo_image = PhotoImage(file=image_path)
+        self.logo_image = self.logo_image.subsample(2, 2)
+        self.logo_label = tk.Label(self, image=self.logo_image, bg="#f0f0f0")
+        self.logo_label.grid(row=0, column=0, columnspan=2, pady=10)
 
-        self.registration_status = tk.Label(self, text="")
-        self.registration_status.grid(row=3, column=0, columnspan=2)
+        self.uid_label = tk.Label(self, text="User ID:", font=self.label_font, bg="#f0f0f0")
+        self.uid_entry = tk.Entry(self, font=self.entry_font)
+        self.uid_label.grid(row=1, column=0, padx=20, pady=10, sticky="e")
+        self.uid_entry.grid(row=1, column=1, padx=20, pady=10, sticky="w")
 
-        self.action_label = tk.Label(self, text="Action:")
+        self.register_button = tk.Button(self, text="Register", command=self.register, font=self.button_font, bg=self.primary_color, fg="black")
+        self.register_button.grid(row=2, column=0, columnspan=2, padx=20, pady=10)
+
+        self.registration_status = tk.Label(self, text="", font=self.status_font, bg="#f0f0f0")
+        self.registration_status.grid(row=3, column=0, columnspan=2, padx=20, pady=10)
+
+        self.action_label = tk.Label(self, text="Action:", font=self.label_font, bg="#f0f0f0")
         self.action_var = tk.StringVar(self)
         self.action_var.set("Buy")
         self.action_dropdown = tk.OptionMenu(self, self.action_var, "Buy", "Sell")
-        self.action_dropdown.grid(row=4, column=1)
+        self.action_dropdown.config(font=self.entry_font)
+        self.action_label.grid(row=4, column=0, padx=20, pady=10, sticky="e")
+        self.action_dropdown.grid(row=4, column=1, padx=20, pady=10, sticky="w")
 
-        self.ticker_label = tk.Label(self, text="Ticker:")
-        self.ticker_entry = tk.Entry(self)
-        self.ticker_label.grid(row=5, column=0)
-        self.ticker_entry.grid(row=5, column=1)
+        self.ticker_label = tk.Label(self, text="Ticker:", font=self.label_font, bg="#f0f0f0")
+        self.ticker_entry = tk.Entry(self, font=self.entry_font)
+        self.ticker_label.grid(row=5, column=0, padx=20, pady=10, sticky="e")
+        self.ticker_entry.grid(row=5, column=1, padx=20, pady=10, sticky="w")
 
-        self.quantity_label = tk.Label(self, text="Quantity:")
-        self.quantity_entry = tk.Entry(self)
-        self.quantity_label.grid(row=6, column=0)
-        self.quantity_entry.grid(row=6, column=1)
+        self.quantity_label = tk.Label(self, text="Quantity:", font=self.label_font, bg="#f0f0f0")
+        self.quantity_entry = tk.Entry(self, font=self.entry_font)
+        self.quantity_label.grid(row=6, column=0, padx=20, pady=10, sticky="e")
+        self.quantity_entry.grid(row=6, column=1, padx=20, pady=10, sticky="w")
 
-        self.price_label = tk.Label(self, text="Price:")
-        self.price_entry = tk.Entry(self)
-        self.price_label.grid(row=7, column=0)
-        self.price_entry.grid(row=7, column=1)
+        self.price_label = tk.Label(self, text="Price:", font=self.label_font, bg="#f0f0f0")
+        self.price_entry = tk.Entry(self, font=self.entry_font)
+        self.price_label.grid(row=7, column=0, padx=20, pady=10, sticky="e")
+        self.price_entry.grid(row=7, column=1, padx=20, pady=10, sticky="w")
 
-        self.submit_order_button = tk.Button(self, text="Submit Order", command=self.submit_order)
-        self.submit_order_button.grid(row=8, column=0, columnspan=2)
+        self.submit_order_button = tk.Button(self, text="Submit Order", command=self.submit_order, font=self.button_font, bg=self.primary_color, fg="black")
+        self.submit_order_button.grid(row=8, column=0, columnspan=2, padx=20, pady=10)
 
-        self.deposit_label = tk.Label(self, text="Deposit Cash:")
-        self.deposit_entry = tk.Entry(self)
-        self.deposit_label.grid(row=9, column=0)
-        self.deposit_entry.grid(row=9, column=1)
+        self.deposit_label = tk.Label(self, text="Deposit Cash:", font=self.label_font, bg="#f0f0f0")
+        self.deposit_entry = tk.Entry(self, font=self.entry_font)
+        self.deposit_label.grid(row=9, column=0, padx=20, pady=10, sticky="e")
+        self.deposit_entry.grid(row=9, column=1, padx=20, pady=10, sticky="w")
 
-        self.deposit_button = tk.Button(self, text="Deposit", command=self.deposit_cash)
-        self.deposit_button.grid(row=10, column=0, columnspan=2)
+        self.deposit_button = tk.Button(self, text="Deposit", command=self.deposit_cash, font=self.button_font, bg=self.primary_color, fg="black")
+        self.deposit_button.grid(row=10, column=0, columnspan=2, padx=20, pady=10)
 
-        self.deposit_status = tk.Label(self, text="")
-        self.deposit_status.grid(row=11, column=0, columnspan=2)
+        self.deposit_status = tk.Label(self, text="", font=self.status_font, bg="#f0f0f0")
+        self.deposit_status.grid(row=11, column=0, columnspan=2, padx=20, pady=10)
 
-        self.deposit_status = tk.Label(self, text="")
-        self.deposit_status.grid(row=12, column=0, columnspan=2)
+        self.cancel_label = tk.Label(self, text="Cancel Order ID:", font=self.label_font, bg="#f0f0f0")
+        self.cancel_entry = tk.Entry(self, font=self.entry_font)
+        self.cancel_label.grid(row=12, column=0, padx=20, pady=10, sticky="e")
+        self.cancel_entry.grid(row=12, column=1, padx=20, pady=10, sticky="w")
 
-        self.cancel_label = tk.Label(self, text="Cancel Order ID:")
-        self.cancel_entry = tk.Entry(self)
-        self.cancel_label.grid(row=13, column=0)
-        self.cancel_entry.grid(row=13, column=1)
+        self.cancel_button = tk.Button(self, text="Cancel Order", command=self.cancel_order, font=self.button_font, bg=self.primary_color, fg="black")
+        self.cancel_button.grid(row=13, column=0, columnspan=2, padx=20, pady=10)
 
-        self.cancel_button = tk.Button(self, text="Cancel Order", command=self.cancel_order)
-        self.cancel_button.grid(row=14, column=0, columnspan=2)
+        self.cancel_status = tk.Label(self, text="", font=self.status_font, bg="#f0f0f0")
+        self.cancel_status.grid(row=14, column=0, columnspan=2, padx=20, pady=10)
 
-        self.cancel_status = tk.Label(self, text="")
-        self.cancel_status.grid(row=15, column=0, columnspan=2)
 
     def cancel_order(self):
         oid = self.cancel_entry.get()
