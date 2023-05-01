@@ -1,0 +1,16 @@
+1# self.db.get_db()['client_balance'][0] += 100
+2# self.db.get_db()['client_balance'][0] += 100
+3# self.db.get_db()['client_balance'][0] += 100
+4# self.db.get_db()['client_balance'][0] += 100
+5# self.db.get_db()['client_balance'][0] += 100
+6# self.db.get_db()['client_balance'][0] += 100
+7# self.db.get_db()['client_balance'][0] += 100
+8# self.db.get_db()['client_balance'][0] += 100
+9# self.db.get_db()['client_balance'][0] += 100
+10# self.db.get_db()['client_balance'][0] += 100
+11# self.db.get_db()['client_balance'][0] += 100
+12# self.send_order_helper('GOOGL', 10, 1, 10, 'bid')
+13# self.db.get_db()['client_balance'][0] += 100
+14# self.send_order_helper('GOOGL', 10, 1, 100, 'bid')
+15# self.db.get_db()['client_balance'][0] += 100
+16# self.send_order_helper('GOOGL', 10, 1, 101, 'bid')
