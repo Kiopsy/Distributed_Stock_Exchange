@@ -1,6 +1,32 @@
-1# self.db.get_db()['client_balance'][0] += 10000000
-2# self.send_order_helper('MSFT', 10, 100, 0, 'bid')
-3# "self.db.get_db()["uid_to_user_dict"][0].filled_oids.popleft()
-4# self.send_order_helper('MSFT', 10, 200, 0, 'ask')
-5# self.send_order_helper('MSFT', 10, 200, 0, 'bid')
-6# "self.db.get_db()["uid_to_user_dict"][0].filled_oids.popleft()
+1# self.db.get_db()['client_balance'][0] += 1000
+2# self.db.get_db()['client_balance'][0] += 128888
+3# self.db.get_db()['client_balance'][0] += 10000
+4# self.send_order_helper('GOOGL', 123, 1000, 0, 'bid')
+5# self.db.get_db()["uid_to_user_dict"][0].filled_oids.popleft()
+6# self.send_order_helper('MSFT', 10, 100, 0, 'bid')
+7# self.db.get_db()["uid_to_user_dict"][0].filled_oids.popleft()
+8# self.send_order_helper('MSFT', 10, 200, 0, 'ask')
+9# self.db.get_db()['client_balance'][0] += 100000
+10# self.send_order_helper('MSFT', 10, 100, 0, 'bid')
+11# self.db.get_db()["uid_to_user_dict"][0].filled_oids.popleft()
+12# self.send_order_helper('MSFT', 10, 50, 0, 'ask')
+13# self.db.get_db()['client_balance'][0] += 10000
+14# self.send_order_helper('MSFT', 1, 50, 0, 'bid')
+15# self.db.get_db()["uid_to_user_dict"][0].filled_oids.popleft()
+16# self.db.get_db()["uid_to_user_dict"][0].filled_oids.popleft()
+17# self.db.get_db()['client_balance'][0] += 10000
+18# self.db.get_db()['client_balance'][0] += 100000
+19# self.send_order_helper('GOOGL', 123, 123, 0, 'bid')
+20# self.db.get_db()["orderbooks"]["GOOGL"].cancel_order_by_oid(6)
+21# self.send_order_helper('GOOGL', 123, 123, 0, 'bid')
+22# self.send_order_helper('GOOGL', 123, 123, 0, 'bid')
+23# self.send_order_helper('GOOGL', 123, 123, 0, 'bid')
+24# self.send_order_helper('GOOGL', 123, 123, 0, 'bid')
+25# self.send_order_helper('GOOGL', 123, 123, 0, 'bid')
+26# self.send_order_helper('GOOGL', 123, 123, 0, 'bid')
+27# self.send_order_helper('GOOGL', 123, 123, 0, 'bid')
+28# self.db.get_db()['client_balance'][0] += 100000
+29# self.send_order_helper('GOOGL', 123, 123, 0, 'bid')
+30# self.send_order_helper('GOOGL', 123, 123, 0, 'bid')
+31# self.db.get_db()['client_balance'][0] += 100000
+32# self.db.get_db()['client_balance'][0] += 7979797

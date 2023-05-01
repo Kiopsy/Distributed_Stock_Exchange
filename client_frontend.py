@@ -104,10 +104,10 @@ class BrokerClientUI(tk.Tk):
         self.create_widgets()
                     
     def create_widgets(self):
-        self.logo_image = PhotoImage(file="/Users/feiyang/Documents/GitHub/cs262-final-project/logo.png")
-        self.logo_image = self.logo_image.subsample(2, 2)  # Adjust the numbers (2, 2) to resize the logo
-        self.logo_label = tk.Label(self, image=self.logo_image)
-        self.logo_label.grid(row=0, column=0, columnspan=2)
+        # self.logo_image = PhotoImage(file="/cs262-final-project/logo.png")
+        # self.logo_image = self.logo_image.subsample(2, 2)  # Adjust the numbers (2, 2) to resize the logo
+        # self.logo_label = tk.Label(self, image=self.logo_image)
+        # self.logo_label.grid(row=0, column=0, columnspan=2)
 
         self.uid_label = tk.Label(self, text="User ID:")
         self.uid_entry = tk.Entry(self)

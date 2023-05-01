@@ -228,7 +228,10 @@ class ExchangeServer(ExchangeServiceServicer):
             self.write_to_log(commit, ballot_id)
             commands = commit.split(c.DIVIDER)
             for cmd in commands:
-                exec(cmd)
+                try:
+                    exec(cmd)
+                except Exception as e:
+                    print(f"Error from Paxos: {e}")
             self.db.store_data()
         else:
             self.sprint("Rejected commit")
@@ -379,7 +382,7 @@ class ExchangeServer(ExchangeServiceServicer):
             return failure 
         
         # PAXOS
-        state_str = f""""self.db.get_db()["uid_to_user_dict"][{request.uid}].filled_oids.popleft()"""
+        state_str = f"""self.db.get_db()["uid_to_user_dict"][{request.uid}].filled_oids.popleft()"""
         if not self.vote_on_client_request(state_str):
             self.sprint("PAXOS consensus failed")
             return failure
