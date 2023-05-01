@@ -298,7 +298,7 @@ class ExchangeServer(ExchangeServiceServicer):
         filled_orders = book.add_order(side, price, quantity, uid, new_oid)
         
         for filled_order in filled_orders:
-            bid_uid, ask_uid, execution_price, executed_quantity, bid_oid, ask_oid = filled_order]
+            bid_uid, ask_uid, execution_price, executed_quantity, bid_oid, ask_oid = filled_order
             
             self.db.get_db()["uid_to_user_dict"][bid_uid].balance -= executed_quantity * execution_price
 

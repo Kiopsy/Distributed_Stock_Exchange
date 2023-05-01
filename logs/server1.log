@@ -1,2 +1,7 @@
-1# self.db.get_db()['client_balance'][0] += 10000000
+1# self.db.get_db()['client_balance'][0] += 100000000
 2# self.send_order_helper('GOOGL', 1, 200, 0, 'bid')
+3# self.send_order_helper('GOOGL', 10, 100, 0, 'bid')
+4# self.db.get_db()['client_balance'][0] += 100000000
+5# self.send_order_helper('GOOGL', 10, 50, 0, 'bid')
+6# self.send_order_helper('GOOGL', 1, 100, 0, 'bid')
+7# self.send_order_helper('GOOGL', 89, 100, 0, 'bid')

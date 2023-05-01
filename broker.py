@@ -136,7 +136,7 @@ class Broker(BrokerServiceServicer):
             self.uid_to_user[request.uid].balance -= FEE
             return exchange_pb2.OrderId(oid=-1)
 
-        self.uid_to_user[request.uid].balance -= cost + FEE
+        self.uid_to_user[request_uid].balance -= cost + FEE
         self.broker_balance += FEE - c.EXCHANGE_FEE
         self.oid_to_order[response.oid] = Order(response.oid, 
                                                 request_uid,
@@ -156,6 +156,8 @@ class Broker(BrokerServiceServicer):
         
         if request.ticker not in self.uid_to_user[request.uid].ticker_balances.keys():
             return exchange_pb2.OrderId(oid=-1)
+        
+        print(f"Asked ticker: {request.ticker}")
 
         if request.quantity <= 0:
             return exchange_pb2.OrderId(oid=-1)
@@ -163,6 +165,7 @@ class Broker(BrokerServiceServicer):
         quantity_owned = self.uid_to_user[request.uid].ticker_balances.get(request.ticker, 0)
         
         if request.quantity > quantity_owned:
+            print(f"User doesn't have enough owned, only owns {quantity_owned}, aborting")
             return exchange_pb2.OrderId(oid=-1)
 
         # Send order to the exchange. Once the order is queued,
@@ -172,9 +175,10 @@ class Broker(BrokerServiceServicer):
         response = self.stub.SendOrder(request=request)
 
         if response.oid == -1:
+            print("Exchange returns -1")
             return exchange_pb2.OrderId(oid=-1)
 
-        self.uid_to_user[request.uid].balance -= FEE
+        self.uid_to_user[request_uid].balance -= FEE
         self.broker_balance += FEE - c.EXCHANGE_FEE
         self.oid_to_order[response.oid] = Order(response.oid,
                                                 request_uid,
