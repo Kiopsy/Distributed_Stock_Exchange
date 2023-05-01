@@ -1,0 +1,2 @@
+1# self.db.get_db()['client_balance'][0] += 10000000
+2# self.send_order_helper('GOOGL', 1, 200, 0, 'bid')
