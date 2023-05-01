@@ -94,21 +94,16 @@ class BrokerClientUI(tk.Tk):
         self.uid_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.uid_entry = ttk.Entry(self.register_frame)
         self.uid_entry.grid(row=0, column=1, padx=5, pady=5, sticky="e")
-
         self.register_button = ttk.Button(self.register_frame, text="Register", command=self.register)
         self.register_button.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
-
         self.deposit_cash_frame = ttk.LabelFrame(self, text="Deposit Cash")
         self.deposit_cash_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
-
         self.amount_label = ttk.Label(self.deposit_cash_frame, text="Amount:")
         self.amount_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.amount_entry = ttk.Entry(self.deposit_cash_frame)
         self.amount_entry.grid(row=0, column=1, padx=5, pady=5, sticky="e")
-
         self.deposit_cash_button = ttk.Button(self.deposit_cash_frame, text="Deposit Cash", command=self.deposit_cash)
         self.deposit_cash_button.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
-
         self.order_frame = ttk.LabelFrame(self, text="Send Order")
         self.order_frame.grid(row=2, column=0, padx=10, pady=10, sticky="nsew")
 
