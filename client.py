@@ -6,12 +6,12 @@ from typing import Dict, List, Tuple, Set, Optional
 from concurrent import futures
 
 class BrokerClient():
-    def __init__(self):
-        self.stub = BrokerServiceStub()
+    def __init__(self, channel):
+        self.stub = BrokerServiceStub(channel)
         self.uid: Optional[int]
     
     def Register(self, uid) -> None:
-        result = self.stub.Register(exchange_pb2.UserInfo(uid=uid))
+        result = self.stub.Register(exchange_pb2.UserInfo(uid=int(uid)))
         if result.result:
             print("Successfully registered")
             self.uid = uid
@@ -70,14 +70,18 @@ class BrokerClient():
         self.SendOrder(order_type, ticker, quantity, price, self.uid)
 
 if __name__ == "__main__":
-    channel = grpc.insecure_channel(c.BROKER_IP[1] + ':' + c.BROKER_IP[0])
+    channel = grpc.insecure_channel(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
     client = BrokerClient(channel)
     while True:
-        print("[1] Register\n[2] Buy/Sell")
+        print("[1] Register\n[2] Buy/Sell\n[3] Deposit Cash")
         inp = input("> ")
         if inp == '1':
             print("What uid?")
             uid = input("> ")
             client.Register(uid)
-        else:
+        elif inp == '2':
             client.make_order()
+        else:
+            print("How much?")
+            amount = input("> ")
+            client.DepositCash(int(amount))
