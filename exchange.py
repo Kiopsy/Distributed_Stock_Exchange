@@ -226,10 +226,6 @@ class ExchangeServer(ExchangeServiceServicer):
             # add commit
             commit, ballot_id = request.commit, request.ballot_id
             self.write_to_log(commit, ballot_id)
-            # TODO: update db
-            # Prolly use state machine mumbo jumbo
-            #
-            # Old code using exec cheese:
             commands = commit.split(c.DIVIDER)
             for cmd in commands:
                 exec(cmd)
@@ -303,7 +299,6 @@ class ExchangeServer(ExchangeServiceServicer):
         
         for filled_order in filled_orders:
             bid_uid, ask_uid, execution_price, executed_quantity, bid_oid, ask_oid = filled_order[0], filled_order[1], filled_order[2], filled_order[3], filled_order[4], filled_order[5]
-
             
             self.db.get_db()["uid_to_user_dict"][bid_uid].balance -= executed_quantity * execution_price
 
@@ -316,6 +311,8 @@ class ExchangeServer(ExchangeServiceServicer):
         
         self.db.store_data()   
 
+        print("send_order_helper", "end")
+
         self.sprint(book.get_orderbook())
 
         return new_oid 
@@ -325,6 +322,9 @@ class ExchangeServer(ExchangeServiceServicer):
     def CancelOrder(self, request, context) -> exchange_pb2.Result:
         # request = exchange_pb2.OrderId
         if request.oid not in self.db.get_db()["oid_to_ticker"].keys():
+            return exchange_pb2.Result(result=False)
+        
+        if request.oid < 0:
             return exchange_pb2.Result(result=False)
         
         ticker = self.db.get_db()["oid_to_ticker"][request.oid]
@@ -348,7 +348,6 @@ class ExchangeServer(ExchangeServiceServicer):
     def GetOrderList(self, request, context) -> exchange_pb2.OrderInfo:
         book = self.db.get_db()["orderbooks"]["GOOGL"]
         return book.get_orderbook()
-
 
     # rpc func "DepositCash": 
     @connection_required

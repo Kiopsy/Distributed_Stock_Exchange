@@ -40,10 +40,10 @@ class Database():
         except:
             self.db = {
                 "orderbooks" : defaultdict(LimitOrderBook),
-                "client_balance": {client: 0 for client in c.USER_KEYS},
+                "client_balance": {client: 0 for client in c.BROKER_KEYS},
                 "oid_count": 0,
                 "oid_to_ticker": {},
-                "uid_to_user_dict": {uid: User(uid, balance=0) for uid in c.USER_KEYS},
+                "uid_to_user_dict": {uid: User(uid, balance=0) for uid in c.BROKER_KEYS},
             }
         return self.db
     
