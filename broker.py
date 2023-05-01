@@ -86,7 +86,7 @@ class Broker(BrokerServiceServicer):
             return exchange_pb2.Result(result=False)
 
         print(f"User id {request.uid} is attempting to cancel {request.oid}")
-        result = self.stub.CancelOrder(request.oid)
+        result = self.stub.CancelOrder(self.OrderId(oid=request.oid))
 
         if result.result:
             order = self.oid_to_order[request.oid]
