@@ -20,7 +20,6 @@ class Institution():
             self.stub.Ping(exchange_pb2.Empty())
             time.sleep(3)
     
-
 if __name__ == "__main__":
     institution = Institution()
     threading.Thread(target=institution.receive_pings).start()

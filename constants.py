@@ -19,7 +19,7 @@ LOG_DIR = "logs"
 
 PKL_DIR = "pickles"
 
-USER_KEYS = [0, 1234]
+BROKER_KEYS = [0, 1234]
 
 DIVIDER = "*(&*^&%^$%^)"
 

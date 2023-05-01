@@ -31,7 +31,7 @@ class User:
 
 class Broker(BrokerServiceServicer):
     def __init__(self) -> None:
-        self.uid = c.USER_KEYS[0]
+        self.uid = c.BROKER_KEYS[0]
         self.uid_to_user: Dict[int, User] = {}
         self.oid_to_order: Dict[int, Order] = {}
 
@@ -86,7 +86,7 @@ class Broker(BrokerServiceServicer):
             return exchange_pb2.Result(result=False)
 
         print(f"User id {request.uid} is attempting to cancel {request.oid}")
-        result = self.stub.CancelOrder(request.oid)
+        result = self.stub.CancelOrder(exchange_pb2.OrderId(oid=request.oid))
 
         if result.result:
             order = self.oid_to_order[request.oid]
@@ -111,10 +111,10 @@ class Broker(BrokerServiceServicer):
         return exchange_pb2.FillInfo(oid=oid, amount_filled=amount_filled)
 
     def handle_bid(self, request):
-        print("1")
         if request.uid not in self.uid_to_user.keys():
             return exchange_pb2.OrderId(oid=-1)
-
+        
+        print(f"Handling bid for User id {request.uid}")
         balance = self.uid_to_user[request.uid].balance
 
         # Note that all costs are in cents
@@ -122,7 +122,14 @@ class Broker(BrokerServiceServicer):
 
         if cost + FEE > balance:
             return exchange_pb2.OrderId(oid=-1)
+
+        request_uid = request.uid
+        request.uid = self.uid
         response = self.stub.SendOrder(request=request)
+
+        if not response:
+            print("Error communicating with exchange ")
+            return exchange_pb2.OrderId(oid=-1)
 
         if response.oid == -1:
             # don't charge the cost if the order doesn't go through, only fee
@@ -132,7 +139,7 @@ class Broker(BrokerServiceServicer):
         self.uid_to_user[request.uid].balance -= cost + FEE
         self.broker_balance += FEE - c.EXCHANGE_FEE
         self.oid_to_order[response.oid] = Order(response.oid, 
-                                                request.uid,
+                                                request_uid,
                                                 request.quantity,
                                                 request.ticker,
                                                 request.price,
@@ -160,6 +167,8 @@ class Broker(BrokerServiceServicer):
 
         # Send order to the exchange. Once the order is queued,
         # remove the stocks and charge a fee from the user's account
+        request_uid = request.uid
+        request.uid = self.uid
         response = self.stub.SendOrder(request=request)
 
         if response.oid == -1:
@@ -168,16 +177,13 @@ class Broker(BrokerServiceServicer):
         self.uid_to_user[request.uid].balance -= FEE
         self.broker_balance += FEE - c.EXCHANGE_FEE
         self.oid_to_order[response.oid] = Order(response.oid,
-                                                request.uid,
+                                                request_uid,
                                                 request.ticker,
                                                 request.quantity,
                                                 request.price,
                                                 exchange_pb2.OrderType.ASK)
-
-        print("9")
+        
         self.uid_to_user[request.uid].ticker_balances[request.ticker] -= request.quantity
-
-        print("10")
         return exchange_pb2.OrderId(oid=response.oid)
 
     def receive_fills(self):
@@ -216,6 +222,6 @@ if __name__ == "__main__":
         broker.stub.CancelOrder(exchange_pb2.OrderId(oid=oid_1.oid))
     """
         
-    # threading.Thread(target=broker.receive_fills).start()
+    threading.Thread(target=broker.receive_fills).start()
     # deposit a dollar as a test
     # broker.stub.DepositCash(request=exchange_pb2.Deposit(uid=0, amount=100))

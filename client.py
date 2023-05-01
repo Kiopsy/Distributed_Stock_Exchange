@@ -18,7 +18,6 @@ class BrokerClient():
             self.uid = int(uid)
         else:
             print("Error while registering")
-
     
     def DepositCash(self, amount) -> bool:
         if not self.uid:
@@ -48,8 +47,11 @@ class BrokerClient():
     def CancelOrder(self, oid) -> None:
         self.stub.CancelOrder(exchange_pb2.CancelRequest(uid=self.uid, oid=oid))
 
-    # stashing code for later; ignore
     def make_order(self) -> None:
+        if not self.uid:
+            print("Please log in first before using that action.")
+            return
+
         print("Would you like to buy or sell a stock?")
         print("[1] Buy")
         print("[2] Sell")

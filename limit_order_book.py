@@ -1,6 +1,6 @@
 # Price time priority limit order book
 # LOB = limit order book
-import heapq
+import heapq, random
 from collections import deque
 from datetime import datetime
 
@@ -23,6 +23,12 @@ class LimitOrderBook:
         self.asks = []
         heapq.heapify(self.bids)
         heapq.heapify(self.asks)
+
+        # Initialize order book with 100 shares priced at 100
+        init_price = 100
+        init_quantity = 100
+        order = Order(-1, init_price, init_quantity, datetime.now(), -1)
+        heapq.heappush(self.asks, (order.price, order.timestamp, order))
 
     def add_order(self, side, price, quantity, uid, new_oid):
         order = Order(uid, price, quantity, datetime.now(), new_oid)
