@@ -7,6 +7,7 @@ from typing import Dict, List, Tuple, Set, Deque
 from concurrent import futures
 from collections import deque
 import exchange_pb2_grpc
+import pickle
 
 FEE = 1
 
@@ -64,6 +65,14 @@ class Broker(BrokerServiceServicer):
             return self.handle_bid(request)
         else:
             return self.handle_ask(request)
+
+    def GetStocks(self, request, context):
+        if request.uid not in self.uid_to_user.keys():
+            return exchange_pb2.UserStocks(bytes())
+
+        stocks_bytes = pickle.dumps(self.uid_to_user[request.uid].ticker_balances)
+
+        return exchange_pb2.UserStocks(stocks_bytes)
 
     def CancelOrder(self, request, context):
         if request.uid not in self.uid_to_user.keys():

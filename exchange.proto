@@ -17,7 +17,6 @@ service ExchangeService {
   rpc Ping (Empty) returns (Empty) {}
 
   // From institutions to exchange 
-  // TODO
   rpc SendOrder(OrderInfo) returns (OrderId) {}
   rpc CancelOrder(OrderId) returns (Result) {}
   rpc GetOrderList(Empty) returns (OrderInfo) {}
@@ -33,10 +32,11 @@ service BrokerService {
   rpc LogOut(Empty) returns (Result) {} // may or may not end up using log in / log out
 
   rpc Register(UserInfo) returns (Result) {}
-  rpc SendOrder(OrderInfo) returns (Result) {}
+  rpc SendOrder(OrderInfo) returns (OrderId) {}
   rpc CancelOrder(CancelRequest) returns (Result) {}
   rpc GetBalance(UserId) returns (Balance) {}
   rpc DepositCash(Deposit) returns (Empty) {}
+  rpc GetStocks(UserId) returns (UserStocks) {}
 
   // From broker to user
   rpc OrderFill(UserInfo) returns (FillInfo) {}
@@ -46,6 +46,10 @@ service BrokerService {
 enum OrderType {
   BID = 0;
   ASK = 1; 
+}
+
+message UserStocks {
+    bytes pickle = 1;
 }
 
 message Deposit {
