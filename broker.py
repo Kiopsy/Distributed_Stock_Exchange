@@ -31,7 +31,7 @@ class User:
 
 class Broker(BrokerServiceServicer):
     def __init__(self) -> None:
-        self.uid = c.USER_KEYS[0]
+        self.uid = c.BROKER_KEYS[0]
         self.uid_to_user: Dict[int, User] = {}
         self.oid_to_order: Dict[int, Order] = {}
 
