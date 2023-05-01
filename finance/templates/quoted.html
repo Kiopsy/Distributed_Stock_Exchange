@@ -1,0 +1,105 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    {{ stock["symbol"] }}: {{ stock["price"] }}
+{% endblock %}
+
+{% block main %}
+
+<!-- Additional dependency: ChartJs https://www.chartjs.org/docs/latest/
+     Used to create the stock price over the day-->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+
+
+    <div style="text-align: center">
+        <h3>
+            {{ stock["symbol"] }}: {{ stock["name"] }}
+        </h3>
+
+        <span>
+            <h4>
+                Current Price:
+            </h4>
+
+            <h4 style="color: rgba({{ display['color'] }}, 1.00);">
+                 {{ stock["price"] }}{{ display['tick']|safe }}
+                 <abbr title="% based on avg. value of 1st minute open. May not be 100% accurate">
+                     {{ display['change'] }}%
+                 </abbr>
+            </h4>
+        </span>
+        <h4>
+            Intraday price history:
+        </h4>
+    </div>
+
+    <canvas id="chart" width="200" height="200"></canvas>
+
+{% if endpoint is true %}
+    <script>
+        // Chart.js layout made with help from the chart.js documentation and
+        // https://blog.ruanbekker.com/blog/2017/12/14/graphing-pretty-charts-with-python-flask-and-chartjs/
+        // (only for setting up labels and data layout)
+
+        var ctx = document.getElementById("chart");
+
+        var chart_labels = [
+            {% for label in labels %}
+                "{{ label }}"{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
+
+        var chart_data = [
+            {% for value in values %}
+                "{{ value }}"{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ]
+
+        var stock_chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chart_labels,
+                datasets: [{
+                    data: chart_data,
+                    label: "{{ stock['symbol'] }}",
+                    borderColor: "rgba({{display['color']}}, 1.00)",
+                    backgroundColor: "rgba({{display['color']}}, 0.60)",
+                    fill: true
+                }]
+            },
+            options: {
+                title: {
+                    display: true,
+                    text: "{{ stock['symbol'] }}'s prices today"
+                },
+                hover: {
+                    mode: 'index',
+                    intersect: false,
+                    animationDuration: 50
+                },
+                tooltips: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        })
+    </script>
+{% endif %}
+
+{% if news is not none %}
+    <h3>{{ stock['symbol']}} News <br></h3>
+
+    {% for story in news %}
+        <h4>
+            <a href="{{story['url']}}">{{ story['headline'] }}</a>
+            <br>{{ story['source'] }}
+        </h4>
+        <p>{{ story['date'] }}</p>
+        {{ story['summary'] }}
+        <h4><br></h4>
+    {% endfor %}
+
+
+{% endif %}
+
+{% endblock %}
