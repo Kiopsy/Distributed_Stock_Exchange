@@ -298,7 +298,7 @@ class ExchangeServer(ExchangeServiceServicer):
         filled_orders = book.add_order(side, price, quantity, uid, new_oid)
         
         for filled_order in filled_orders:
-            bid_uid, ask_uid, execution_price, executed_quantity, bid_oid, ask_oid = filled_order]
+            bid_uid, ask_uid, execution_price, executed_quantity, bid_oid, ask_oid = filled_order
             
             self.db.get_db()["uid_to_user_dict"][bid_uid].balance -= executed_quantity * execution_price
 
@@ -312,7 +312,7 @@ class ExchangeServer(ExchangeServiceServicer):
         
         self.db.store_data()   
 
-        self.sprint(book.get_orderbook())
+        book.print_orderbook()
 
         return new_oid 
 
@@ -337,7 +337,8 @@ class ExchangeServer(ExchangeServiceServicer):
         result = book.cancel_order_by_oid(request.oid)
         self.db.store_data()
 
-        self.sprint("Orderbook:", book.get_orderbook())
+        book.print_orderbook()
+
         return exchange_pb2.Result(result=result)
     
     # WIP TODO
@@ -363,20 +364,24 @@ class ExchangeServer(ExchangeServiceServicer):
     # rpc func "OrderFill":
     @connection_required
     def OrderFill(self, request, context) -> exchange_pb2.FillInfo:
+        # print("OrderFill called")
         failure = exchange_pb2.FillInfo(oid=-1, 
                                         amount_filled=-1, 
                                         execution_price=-1)
 
         if request.uid not in self.db.get_db()["uid_to_user_dict"].keys():
+            # self.sprint("UID not in keys")
             return failure
         
         user = self.db.get_db()["uid_to_user_dict"][request.uid]
         if len(user.filled_oids) == 0:
+            # self.sprint(f"No filled oids for user {request.uid}")
             return failure 
         
         # PAXOS
         state_str = f""""self.db.get_db()["uid_to_user_dict"][{request.uid}].filled_oids.popleft()"""
         if not self.vote_on_client_request(state_str):
+            self.sprint("PAXOS consensus failed")
             return failure
 
         oid, execution_price, quantity = user.filled_oids.popleft()

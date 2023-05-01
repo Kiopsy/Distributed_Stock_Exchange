@@ -1,2 +1,6 @@
 1# self.db.get_db()['client_balance'][0] += 10000000
-2# self.send_order_helper('GOOGL', 1, 200, 0, 'bid')
+2# self.send_order_helper('MSFT', 10, 100, 0, 'bid')
+3# "self.db.get_db()["uid_to_user_dict"][0].filled_oids.popleft()
+4# self.send_order_helper('MSFT', 10, 200, 0, 'ask')
+5# self.send_order_helper('MSFT', 10, 200, 0, 'bid')
+6# "self.db.get_db()["uid_to_user_dict"][0].filled_oids.popleft()
