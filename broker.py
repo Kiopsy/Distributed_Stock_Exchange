@@ -27,7 +27,7 @@ class User:
         self.balance = 0
         self.oids: Set[int] = {}
         self.ticker_balances: Dict[str, int] = {}
-        self.fills: Deque[Tuple[int, int]] = deque()
+        self.fills: Deque[Tuple[int, int, int]] = deque()
 
 class Broker(BrokerServiceServicer):
     def __init__(self) -> None:
@@ -104,10 +104,10 @@ class Broker(BrokerServiceServicer):
         if len(self.uid_to_user[request.uid].fills) == 0:
             return exchange_pb2.FillInfo(oid=-1, amount_filled=-1)
 
-        oid, amount_filled = self.uid_to_user[request.uid].fills.popleft()
+        oid, amount_filled, execution_price = self.uid_to_user[request.uid].fills.popleft()
 
         print(f"User id {request.uid} had a filled order sent")
-        return exchange_pb2.FillInfo(oid=oid, amount_filled=amount_filled)
+        return exchange_pb2.FillInfo(oid=oid, amount_filled=amount_filled, execution_price=execution_price)
 
     def handle_bid(self, request):
         if request.uid not in self.uid_to_user.keys():
@@ -202,7 +202,7 @@ class Broker(BrokerServiceServicer):
                 continue
             print(f"Received a fill with oid {fill.oid}")
             order = self.oid_to_order[fill.oid]
-            self.uid_to_user[order.uid].fills.append((order.oid, fill.amount_filled))
+            self.uid_to_user[order.uid].fills.append((order.oid, fill.amount_filled, fill.execution_price))
             self.oid_to_order[fill.oid].amount -= fill.amount_filled
             if order.side == exchange_pb2.OrderType.BID:
                 shares = self.uid_to_user[order.uid].ticker_balances.get(order.ticker, 0)
