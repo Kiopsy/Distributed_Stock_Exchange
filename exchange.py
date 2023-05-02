@@ -93,7 +93,7 @@ class ExchangeServer(ExchangeServiceServicer):
 
                     self.peer_alive[port] = True
                 except Exception as e:
-                    self.sprint("[connect]", "Received Error:", e)
+                    self.sprint("Received connect error:", e)
                     self.peer_alive[port] = False
 
         # run a leader election if the server has no primary
@@ -108,7 +108,7 @@ class ExchangeServer(ExchangeServiceServicer):
     def revive(self, revive_info: exchange_pb2.ReviveInfo) -> None:
         self.primary_port = revive_info.primary_port
 
-        self.debug_print("[revive]", "Received primary: ", self.primary_port)
+        self.debug_print("Received primary:", self.primary_port)
 
         try:
             # clear log file and rewrite with revive_info file !!
@@ -119,13 +119,12 @@ class ExchangeServer(ExchangeServiceServicer):
             # update db using revive info
             self.db.turn_bytes_into_db(revive_info.db_bytes)
             
-            self.sprint("[revive]", "Server revived", self.primary_port)
+            self.sprint("Server revived", self.primary_port)
         except:
-            self.sprint("[revive]", "Some log/db updating conflict")
+            self.sprint("Some log/db updating conflict")
     
     # rpc func "Alive": takes in Empty and returns updates
     def Alive(self, request, context):
-        self.debug_print("[Alive]", "Starting Alive RPC")
 
         # only the primary can send over revive info
         if self.primary_port == self.PORT:
@@ -145,7 +144,6 @@ class ExchangeServer(ExchangeServiceServicer):
         else:
             info = exchange_pb2.ReviveInfo(updates = False)
 
-        self.debug_print("[Alive]", "Ending Alive RPC")
         return info
     
     #### HEARTBEAT SECTION ####
@@ -182,7 +180,7 @@ class ExchangeServer(ExchangeServiceServicer):
     def leader_election(self) -> int:
         alive_ports = (port for port, alive in [*self.peer_alive.items(), (self.PORT, True)] if alive)
         self.primary_port = min(alive_ports)
-        self.sprint("[leader_election]", "New primary:", self.primary_port)
+        self.sprint("New primary:", self.primary_port)
         return self.primary_port
 
     #### CONSENSUS VOTING (PAXOS) SECTION ####
@@ -204,7 +202,7 @@ class ExchangeServer(ExchangeServiceServicer):
                 response : exchange_pb2.CommitVote = stub.ProposeCommit(req)
                 approved &= response.approve
             except:
-                self.sprint("[send_commit_proposal]", port, "died when voting; vote rejected")
+                self.sprint(port, "died when voting; vote rejected")
                 approved = False
                 self.peer_alive[port] = False
 
@@ -244,17 +242,17 @@ class ExchangeServer(ExchangeServiceServicer):
                 try:
                     exec(cmd)
                 except Exception as e:
-                    self.sprint("[SendVoteResult]", f"Error from Paxos: {e}")
+                    self.sprint(f"Error from Paxos in SendVoteResult: {e}")
             self.db.store_data()
         else:
-            self.sprint("[SendVoteResult]", "Rejected commit")
+            self.sprint("Rejected commit in SendVoteResult")
 
         return exchange_pb2.Empty()
     
     # func "write_to_log": writes a commit to the log file
     def write_to_log(self, commit, ballot_id):
         # TODO: if not connected, wait until connected to add these commits
-        self.sprint("[write_to_log]" f"Added commit {commit} w/ ballot_id {ballot_id}")
+        self.sprint(f"Added commit {commit} w/ ballot_id {ballot_id}")
         self.log_file.write(f"{ballot_id}# {commit}\n")
         self.log_file.flush()
 
@@ -397,29 +395,30 @@ class ExchangeServer(ExchangeServiceServicer):
     # rpc func "OrderFill":
     @connection_required
     def OrderFill(self, request, context) -> exchange_pb2.FillInfo:
-        # print("OrderFill called")
+        # self.debug_print("[OrderFill]", "Starting RPC")
         failure = exchange_pb2.FillInfo(oid=-1, 
                                         amount_filled=-1, 
                                         execution_price=-1)
 
         if request.uid not in self.db.get_db()["uid_to_user_dict"].keys():
-            # self.sprint("UID not in keys")
+            # self.debug_print("[OrderFill]", "UID not in keys")
             return failure
         
         user = self.db.get_db()["uid_to_user_dict"][request.uid]
         if len(user.filled_oids) == 0:
-            # self.sprint(f"No filled oids for user {request.uid}")
+            # self.debug_print("[OrderFill]", f"No filled oids for user {request.uid}")
             return failure 
         
         # PAXOS
         state_str = f"""self.db.get_db()["uid_to_user_dict"][{request.uid}].filled_oids.popleft()"""
         if not self.vote_on_client_request(state_str):
-            self.sprint("PAXOS consensus failed")
+            self.sprint("PAXOS consensus failed in OrderFill")
             return failure
 
         oid, execution_price, quantity = user.filled_oids.popleft()
         self.db.store_data()
 
+        # self.debug_print("[OrderFill]", "Exiting successfully")  
         return exchange_pb2.FillInfo(oid=oid, 
                                      amount_filled=quantity, 
                                      execution_price=execution_price)
