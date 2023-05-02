@@ -14,6 +14,7 @@ class ExchangeServer(ExchangeServiceServicer):
     def __init__(self, id: int, silent=False) -> None:
         self.ID = id
         self.SILENT = silent
+        self.DEBUG = False
 
         # initialize channel constants
         self.HOST = socket.gethostbyname(socket.gethostname())
@@ -60,6 +61,12 @@ class ExchangeServer(ExchangeServiceServicer):
         if not self.SILENT:
             print(f"Server {self.ID}:", *args, **kwargs)
 
+    # func "debug_print": debug print within a server
+    def debug_print(self, *args, **kwargs) -> None:
+        # only print if in debug mode
+        if self.DEBUG:
+            print(f"Server {self.ID}:", *args, **kwargs)
+
     # func "stop_server": stop the machine's heartbeat by setting stop_event
     def stop_server(self):
         self.stop_event.set() 
@@ -101,7 +108,7 @@ class ExchangeServer(ExchangeServiceServicer):
     def revive(self, revive_info: exchange_pb2.ReviveInfo) -> None:
         self.primary_port = revive_info.primary_port
 
-        self.sprint("[revive]", "Received primary: ", self.primary_port)
+        self.debug_print("[revive]", "Received primary: ", self.primary_port)
 
         try:
             # clear log file and rewrite with revive_info file !!
@@ -112,12 +119,14 @@ class ExchangeServer(ExchangeServiceServicer):
             # update db using revive info
             self.db.turn_bytes_into_db(revive_info.db_bytes)
             
-            self.sprint("[revive]", "Server revived ", self.primary_port)
+            self.sprint("[revive]", "Server revived", self.primary_port)
         except:
             self.sprint("[revive]", "Some log/db updating conflict")
     
     # rpc func "Alive": takes in Empty and returns updates
     def Alive(self, request, context):
+        self.debug_print("[Alive]", "Starting Alive RPC")
+
         # only the primary can send over revive info
         if self.primary_port == self.PORT:
             try:
@@ -128,13 +137,16 @@ class ExchangeServer(ExchangeServiceServicer):
             except:
                 text_data = ""
                 db_bytes = bytes()
-            return exchange_pb2.ReviveInfo(
+            info = exchange_pb2.ReviveInfo(
                 primary_port = self.primary_port, 
                 commit_log = text_data,
                 db_bytes = db_bytes, 
                 updates = True)
         else:
-            return exchange_pb2.ReviveInfo(updates = False)
+            info = exchange_pb2.ReviveInfo(updates = False)
+
+        self.debug_print("[Alive]", "Ending Alive RPC")
+        return info
     
     #### HEARTBEAT SECTION ####
     
@@ -170,7 +182,7 @@ class ExchangeServer(ExchangeServiceServicer):
     def leader_election(self) -> int:
         alive_ports = (port for port, alive in [*self.peer_alive.items(), (self.PORT, True)] if alive)
         self.primary_port = min(alive_ports)
-        self.sprint(f"New primary: {self.primary_port}")
+        self.sprint("[leader_election]", "New primary:", self.primary_port)
         return self.primary_port
 
     #### CONSENSUS VOTING (PAXOS) SECTION ####
@@ -192,7 +204,7 @@ class ExchangeServer(ExchangeServiceServicer):
                 response : exchange_pb2.CommitVote = stub.ProposeCommit(req)
                 approved &= response.approve
             except:
-                self.sprint(port, "died when voting; vote rejected")
+                self.sprint("[send_commit_proposal]", port, "died when voting; vote rejected")
                 approved = False
                 self.peer_alive[port] = False
 
@@ -232,17 +244,17 @@ class ExchangeServer(ExchangeServiceServicer):
                 try:
                     exec(cmd)
                 except Exception as e:
-                    print(f"Error from Paxos: {e}")
+                    self.sprint("[SendVoteResult]", f"Error from Paxos: {e}")
             self.db.store_data()
         else:
-            self.sprint("Rejected commit")
+            self.sprint("[SendVoteResult]", "Rejected commit")
 
         return exchange_pb2.Empty()
     
     # func "write_to_log": writes a commit to the log file
     def write_to_log(self, commit, ballot_id):
         # TODO: if not connected, wait until connected to add these commits
-        self.sprint(f"Added commit {commit} w/ ballot_id {ballot_id}")
+        self.sprint("[write_to_log]" f"Added commit {commit} w/ ballot_id {ballot_id}")
         self.log_file.write(f"{ballot_id}# {commit}\n")
         self.log_file.flush()
 
@@ -255,7 +267,7 @@ class ExchangeServer(ExchangeServiceServicer):
                 
         return False
 
-    # CLIENT FUNCTIONS SECTION
+    #### CLIENT (BROKER/INSTITUTION) FUNCTIONS SECTION ####
 
     # decorator that only allows clients to connect if the current machine is connected to the peers
     def connection_required(func):
@@ -270,10 +282,11 @@ class ExchangeServer(ExchangeServiceServicer):
         
         return wrapper
 
-    # WIP
     # rpc func "SendOrder": push an order to the orderbooks, make matches if possible
     @connection_required
     def SendOrder(self, request, context):
+        self.debug_print("[SendOrder]", "Starting RPC")
+
         # retrieve the order
         ticker = request.ticker
         quantity = request.quantity
@@ -281,59 +294,71 @@ class ExchangeServer(ExchangeServiceServicer):
         uid = request.uid
         side = "bid" if request.type == exchange_pb2.OrderType.BID else "ask"
 
-
-        # PAXOS
+        # run PAXOS to ensure consensus when adding order
         state_str = f"""self.send_order_helper('{ticker}', {quantity}, {price}, {uid}, '{side}')"""
         if not self.vote_on_client_request(state_str):
             return exchange_pb2.OrderId(oid=-1)
 
         new_oid = self.send_order_helper(ticker, quantity, price, uid, side)
 
+        self.debug_print("[SendOrder]", "Exiting successfully")
         return exchange_pb2.OrderId(oid=new_oid)
     
-    def send_order_helper(self, ticker, quantity, price, uid, side):
+    # func "send_order_helper":  add order to orderbook, fill matches, return its oid.
+    def send_order_helper(self, ticker, quantity, price, uid, side) -> int:
+
         # retreive orderbook associated with the stock's ticker
+        self.debug_print("[send_order_helper]", f"Retreiving {ticker} orderbook")
         book = self.db.get_db()["orderbooks"][ticker]
-        
+
+        # increment oid_count to make order unique
         new_oid = self.db.get_db()["oid_count"]
         self.db.get_db()["oid_count"] += 1
-
         self.db.get_db()["oid_to_ticker"][new_oid] =  ticker
-        
+
+        # add the order to the orderbook and retrive filled orders
+        self.debug_print("[send_order_helper]", "Adding order to book and run matching")
         filled_orders = book.add_order(side, price, quantity, uid, new_oid)
+        self.debug_print("[send_order_helper]", "Filled orders:", filled_orders)
         
+        # for each matched order, change each bid/ask user's account
         for filled_order in filled_orders:
             bid_uid, ask_uid, execution_price, executed_quantity, bid_oid, ask_oid = filled_order
             
+            # BID USERS
+            self.debug_print("[send_order_helper]", f"Modifying bid user {bid_uid}'s account")
             self.db.get_db()["uid_to_user_dict"][bid_uid].balance -= executed_quantity * execution_price
-
             self.db.get_db()["uid_to_user_dict"][bid_uid].ticker_to_amount[ticker] = self.db.get_db()["uid_to_user_dict"][bid_uid].ticker_to_amount.get(ticker, 0) + executed_quantity
             self.db.get_db()["uid_to_user_dict"][bid_uid].filled_oids.append((bid_oid, execution_price, executed_quantity))
 
-            if ask_oid != -1:
+            # ASK USERS
+            if ask_oid != -1: # accounting for orderbook's default asks
+                self.debug_print("[send_order_helper]", f"Modifying ask user {ask_uid}'s account")
                 self.db.get_db()["uid_to_user_dict"][ask_uid].balance += executed_quantity * execution_price
                 self.db.get_db()["uid_to_user_dict"][ask_uid].ticker_to_amount[ticker] -= executed_quantity
                 self.db.get_db()["uid_to_user_dict"][ask_uid].filled_oids.append((ask_oid, execution_price, executed_quantity))
-        
+
         self.db.store_data()   
-
-        book.print_orderbook()
-
+        self.debug_print("[send_order_helper]", "Resulting orderbook:", book)
         return new_oid 
 
     # rpc func "CancelOrder": 
     @connection_required
     def CancelOrder(self, request, context) -> exchange_pb2.Result:
-        # request = exchange_pb2.OrderId
+        self.debug_print("[CancelOrder]", "Starting RPC")
+
         if request.oid not in self.db.get_db()["oid_to_ticker"].keys():
+            self.debug_print("[CancelOrder]", f"Order {request.oid} not found")
             return exchange_pb2.Result(result=False)
         
         if request.oid < 0:
+            self.debug_print("[CancelOrder]", f"Negative orders not allowed")
             return exchange_pb2.Result(result=False)
         
+        self.debug_print("[CancelOrder]", f"Order {request.oid} found")
         ticker = self.db.get_db()["oid_to_ticker"][request.oid]
     
-        # PAXOS
+        # run PAXOS to ensure consensus when deleting order
         state_str = f'self.db.get_db()["orderbooks"]["{ticker}"].cancel_order_by_oid({request.oid})'
         if not self.vote_on_client_request(state_str):
             return exchange_pb2.Result(result=False, message = "Servers failed to reach agreement on cancel request")
@@ -341,9 +366,8 @@ class ExchangeServer(ExchangeServiceServicer):
         book = self.db.get_db()["orderbooks"][ticker]
         result = book.cancel_order_by_oid(request.oid)
         self.db.store_data()
-
-        book.print_orderbook()
-
+        self.debug_print("[CancelOrder]", "Resulting orderbook:", book)
+        self.debug_print("[CancelOrder]", "Exiting successfully")
         return exchange_pb2.Result(result=result)
     
     # WIP TODO
@@ -357,13 +381,17 @@ class ExchangeServer(ExchangeServiceServicer):
     # rpc func "DepositCash": 
     @connection_required
     def DepositCash(self, request, context) -> exchange_pb2.Result:
+        self.debug_print("[DepositCash]", "Starting RPC")
+        
+        # run PAXOS to maintain user account consensus
         res = False
         state_str = f"self.db.get_db()['client_balance'][{request.uid}] += {request.amount}"
         if request.uid in self.db.get_db()["client_balance"] and self.vote_on_client_request(state_str):
             self.db.get_db()["client_balance"][request.uid] += request.amount
             self.db.store_data()
             res = True  
-                
+
+        self.debug_print("[DepositCash]", "Exiting successfully")       
         return exchange_pb2.Result(result = res)
 
     # rpc func "OrderFill":

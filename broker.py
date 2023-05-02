@@ -54,7 +54,7 @@ class Broker(BrokerServiceServicer):
         return exchange_pb2.Result(result=True)
 
     def DepositCash(self, request, context):
-        if request.uid not in self.uid_to_user.keys():
+        if request.uid not in self.uid_to_user.keys().pickle:
             # just return empty regardless; non-compliant client
             return exchange_pb2.Empty()
 
