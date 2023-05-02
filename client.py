@@ -11,7 +11,7 @@ class BrokerClient():
         self.stub = BrokerServiceStub(channel)
         self.uid: Optional[int]
     
-    def Register(self, uid) -> None:
+    def Register(self, uid: int) -> None:
         result = self.stub.Register(exchange_pb2.UserInfo(uid=int(uid)))
         if result.result:
             print("Successfully registered")
@@ -19,7 +19,7 @@ class BrokerClient():
         else:
             print("Error while registering")
     
-    def DepositCash(self, amount) -> bool:
+    def DepositCash(self, amount: int) -> bool:
         if not self.uid:
             print("Please register/log in first.")
             return False
@@ -95,7 +95,7 @@ class BrokerClient():
 
 import tkinter as tk
 from tkinter import messagebox
-
+"""
 class BrokerClientUI(tk.Tk):
     def __init__(self, broker_client):
         super().__init__()
@@ -222,3 +222,4 @@ def main():
     app.mainloop()
 
 main()
+"""

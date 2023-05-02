@@ -16,7 +16,8 @@ class ExchangeServer(ExchangeServiceServicer):
         self.SILENT = silent
 
         # initialize channel constants
-        self.HOST = socket.gethostbyname(socket.gethostname())
+        # self.HOST = socket.gethostbyname(socket.gethostname())
+        self.HOST = "10.250.36.224"
         self.PORT = 50050 + self.ID
 
         # dict of the other servers' ports -> their host/ips
@@ -449,6 +450,7 @@ def main():
 
 if __name__ == '__main__':
     # Get your own hostname:
-    hostname = socket.gethostbyname(socket.gethostname())
+    # hostname = socket.gethostbyname(socket.gethostname())
+    hostname = "10.250.36.224"
     print("Hostname:", hostname)
     main()
