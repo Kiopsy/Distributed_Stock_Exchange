@@ -1,3 +1,5 @@
 1# self.db.get_db()['client_balance'][0] += 1000
 2# self.db.get_db()['client_balance'][0] += 10000
 3# self.db.get_db()['client_balance'][0] += 10
+4# self.db.get_db()['client_balance'][0] += 100
+5# self.db.get_db()['client_balance'][0] += 100
