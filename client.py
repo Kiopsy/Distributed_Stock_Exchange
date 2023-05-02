@@ -5,11 +5,15 @@ import constants as c
 from typing import Dict, List, Tuple, Set, Optional
 from concurrent import futures
 from tkinter import PhotoImage
+import pickle
 
 class BrokerClient():
     def __init__(self, channel):
         self.stub = BrokerServiceStub(channel)
         self.uid: Optional[int]
+    
+    def sprint(self, *args, **kwargs):
+        print("BrokerClient:", *args, **kwargs)
     
     def Register(self, uid: int) -> None:
         result = self.stub.Register(exchange_pb2.UserInfo(uid=int(uid)))
@@ -31,18 +35,36 @@ class BrokerClient():
         except Exception as e:
             print(f"Error while depositing: {e}")
             return False
+        
+    def GetStocks(self) -> Tuple[str, bool, Dict[str, int]]:
+        if not self.uid:
+            return ("Please login/register first", False, {})
+        try:
+            result = self.stub.GetStocks(exchange_pb2.UserId(uid=self.uid))
+            stocks = pickle.loads(result.pickle)
+            return ("", True, stocks)
+        except Exception as e:
+            self.sprint(f"Error: {e}")
+            return (str(e), False, {})
 
     def SendOrder(self, order_type, ticker, quantity, price, uid) -> None:
 
-        result = self.stub.SendOrder(exchange_pb2.OrderInfo(ticker=ticker, 
+        try:
+            result = self.stub.SendOrder(exchange_pb2.OrderInfo(ticker=ticker, 
                                                             quantity=quantity,
                                                             price=price,
                                                             uid=self.uid,
                                                             type=order_type))
-        if result.oid == -1:
-            print("Order failed!")
+        except Exception as e:
+            self.sprint(f"Error: {e}")
+            result = None
+        
+        if result and result.oid == -1:
+            res = ("Order failed!", False)
         else:
-            print(f"Order placed. Order id: {result.oid}")
+            res = (f"Order placed. Order id: {result.oid}", True)
+
+        return res
 
     def CancelOrder(self, oid) -> None:
         self.stub.CancelOrder(exchange_pb2.CancelRequest(uid=self.uid, oid=oid))
@@ -76,22 +98,29 @@ class BrokerClient():
         # send information to the broker client
         self.SendOrder(order_type, ticker, quantity, price, self.uid)
 
-# if __name__ == "__main__":
-#     channel = grpc.insecure_channel(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
-#     client = BrokerClient(channel)
-#     while True:
-#         print("[1] Register\n[2] Buy/Sell\n[3] Deposit Cash")
-#         inp = input("> ")
-#         if inp == '1':
-#             print("What uid?")
-#             uid = input("> ")
-#             client.Register(uid)
-#         elif inp == '2':
-#             client.make_order()
-#         else:
-#             print("How much?")
-#             amount = input("> ")
-#             client.DepositCash(int(amount))
+if __name__ == "__main__":
+    channel = grpc.insecure_channel(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
+    client = BrokerClient(channel)
+    while True:
+        print("[1] Register\n[2] Buy/Sell\n[3] Deposit Cash\n[4] Get Stocks")
+        inp = input("> ")
+        if inp == '1':
+            print("What uid?")
+            uid = input("> ")
+            client.Register(uid)
+        elif inp == '2':
+            client.make_order()
+        elif inp == '3':
+            print("How much?")
+            amount = input("> ")
+            client.DepositCash(int(amount))
+        else:
+            err, success, stocks = client.GetStocks()
+            if not success:
+                print(err)
+            else:
+                for key, value in stocks.items():
+                    print(f"{key}: {value}")
 
 import tkinter as tk
 from tkinter import messagebox

@@ -9,15 +9,15 @@ from database import Database, User
 from collections import defaultdict, deque
 from typing import Dict
         
-# class that defines an exchange and its server
+# class to define an exchange server
 class ExchangeServer(ExchangeServiceServicer):
     def __init__(self, id: int, silent=False) -> None:
         self.ID = id
         self.SILENT = silent
 
         # initialize channel constants
-        # self.HOST = socket.gethostbyname(socket.gethostname())
-        self.HOST = "10.250.36.224"
+        self.HOST = socket.gethostbyname(socket.gethostname())
+        # self.HOST = "10.250.36.224"
         self.PORT = 50050 + self.ID
 
         # dict of the other servers' ports -> their host/ips
@@ -55,7 +55,6 @@ class ExchangeServer(ExchangeServiceServicer):
         # thread safe set that tracks if a ballot id has been seen
         self.seen_ballots = ThreadSafeSet()
         
-
     # func "sprint": prints within a server
     def sprint(self, *args, **kwargs) -> None:
         if not self.SILENT:
@@ -66,7 +65,7 @@ class ExchangeServer(ExchangeServiceServicer):
         self.stop_event.set() 
         self.heartbeat_thread.join()
 
-    # (RE)CONNECTION SECTION
+    #### (RE)CONNECTION SECTION ####
 
     # func "connect": connect current server to peers servers
     def connect(self) -> bool:
@@ -77,6 +76,7 @@ class ExchangeServer(ExchangeServiceServicer):
                     # form connection (stub)
                     channel = grpc.insecure_channel(host + ':' + str(port)) 
                     self.peer_stubs[port] = ExchangeServiceStub(channel)
+
                     #  check if the peer is alive
                     revive_info: exchange_pb2.ReviveInfo = self.peer_stubs[port].Alive(exchange_pb2.Empty())
 
@@ -86,7 +86,7 @@ class ExchangeServer(ExchangeServiceServicer):
 
                     self.peer_alive[port] = True
                 except Exception as e:
-                    self.sprint("Received Error in Connect:", e)
+                    self.sprint("[connect]", "Received Error:", e)
                     self.peer_alive[port] = False
 
         # run a leader election if the server has no primary
@@ -94,14 +94,14 @@ class ExchangeServer(ExchangeServiceServicer):
             self.leader_election()
 
         self.connected = True
-        self.sprint("Connected", self.peer_alive)
+        self.sprint("Connected:", self.peer_alive)
         return self.connected
     
-    # func "revive": revive's a server based on the primary's commit log
+    # func "revive": revive's a server based on revive info from primary server
     def revive(self, revive_info: exchange_pb2.ReviveInfo) -> None:
         self.primary_port = revive_info.primary_port
 
-        self.sprint("Received primary: ", self.primary_port)
+        self.sprint("[revive]", "Received primary: ", self.primary_port)
 
         try:
             # clear log file and rewrite with revive_info file !!
@@ -109,16 +109,16 @@ class ExchangeServer(ExchangeServiceServicer):
             self.log_file.write(revive_info.commit_log)
             self.log_file.flush()
 
-            # update db to be like the log file OR use binary sent data to be the new db
-            # TODO: probably should not cheese it like this ("this" being passing in bytes)
+            # update db using revive info
             self.db.turn_bytes_into_db(revive_info.db_bytes)
-
+            
+            self.sprint("[revive]", "Server revived ", self.primary_port)
         except:
-            self.sprint("Some log/db updating conflict")
+            self.sprint("[revive]", "Some log/db updating conflict")
     
     # rpc func "Alive": takes in Empty and returns updates
     def Alive(self, request, context):
-        # only the primary can send over revive info (aka commit log)
+        # only the primary can send over revive info
         if self.primary_port == self.PORT:
             try:
                 with open(self.LOG_FILE_NAME, 'r') as file:
@@ -136,7 +136,7 @@ class ExchangeServer(ExchangeServiceServicer):
         else:
             return exchange_pb2.ReviveInfo(updates = False)
     
-    # HEARTBEAT SECTION
+    #### HEARTBEAT SECTION ####
     
     # func "receive_heartbeat": ask all other machines if they are alive by asking of
     def receive_heartbeat(self) -> None:
@@ -173,7 +173,7 @@ class ExchangeServer(ExchangeServiceServicer):
         self.sprint(f"New primary: {self.primary_port}")
         return self.primary_port
 
-    # CONSENSUS VOTING (PAXOS) SECTION
+    #### CONSENSUS VOTING (PAXOS) SECTION ####
 
     # func "send_commit_proposal" : proposes a commit, if all peers agree on it: it is commited; else: it is rejected
     def send_commit_proposal(self, commit: str) -> bool:
@@ -280,6 +280,7 @@ class ExchangeServer(ExchangeServiceServicer):
         price = request.price
         uid = request.uid
         side = "bid" if request.type == exchange_pb2.OrderType.BID else "ask"
+
 
         # PAXOS
         state_str = f"""self.send_order_helper('{ticker}', {quantity}, {price}, {uid}, '{side}')"""
@@ -433,6 +434,7 @@ def main():
             serve(machine_id)
         except KeyboardInterrupt:
             pass
+    # Otherwise, spawn & connect servers using multiprocessing
     else:
         processes = []
     
@@ -450,7 +452,7 @@ def main():
 
 if __name__ == '__main__':
     # Get your own hostname:
-    # hostname = socket.gethostbyname(socket.gethostname())
-    hostname = "10.250.36.224"
+    hostname = socket.gethostbyname(socket.gethostname())
+    # hostname = "10.250.36.224"
     print("Hostname:", hostname)
     main()

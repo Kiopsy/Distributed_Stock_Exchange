@@ -1,5 +1,3 @@
-1# self.db.get_db()['client_balance'][0] += 1000
-2# self.db.get_db()['client_balance'][0] += 10000
-3# self.db.get_db()['client_balance'][0] += 10
-4# self.db.get_db()['client_balance'][0] += 100
-5# self.db.get_db()['client_balance'][0] += 100
+1# self.db.get_db()['client_balance'][0] += 101
+2# self.send_order_helper('AAPL', 1, 100, 0, 'bid')
+3# self.db.get_db()["uid_to_user_dict"][0].filled_oids.popleft()

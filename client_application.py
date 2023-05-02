@@ -59,7 +59,19 @@ def index():
         username = user[0]['username']
         balance = usd(user[0]['cash'])
 
-    stocks = get_user_stocks(db, session["user_id"])
+    try:
+        msg, success, owned_stocks = broker_client.GetStocks()
+    except:
+        return apology("server is down", 400)
+    
+    if not success:
+        return apology(msg, 400)
+
+    # stocks = get_user_stocks(db, session["user_id"])
+
+    stocks = []
+    for ticker, shares in owned_stocks.items():
+        stocks.append({"symbol": ticker, "shares": shares, "value": 1})
 
     for stock in stocks:
         info = lookup(stock["symbol"])
@@ -126,21 +138,25 @@ def buy():
             return apology("not enough balance in account for transaction", 400)
         
         try:
-            broker_client.SendOrder(exchange_pb2.OrderType.BID, ticker, shares, price, session["user_id"])
+            msg, success = broker_client.SendOrder(exchange_pb2.OrderType.BID, ticker, shares, price, session["user_id"])
         except:
             return apology("server is down", 400)
+        
+        if success:
 
-        db.execute("INSERT INTO transactions (\"user-id\", symbol, shares, price) VALUES(?, ?, ?, ?)",
-                   session["user_id"], ticker, int(shares), price)
+            db.execute("INSERT INTO transactions (\"user-id\", symbol, shares, price) VALUES(?, ?, ?, ?)",
+                    session["user_id"], ticker, int(shares), price)
 
-        cash = round(cash - int(shares) * price, 2)
+            cash = round(cash - int(shares) * price - c.BROKER_FEE, 2) 
 
-        db.execute("UPDATE users SET cash = ? WHERE id = ?", cash, session["user_id"])
+            db.execute("UPDATE users SET cash = ? WHERE id = ?", cash, session["user_id"])
 
-        total = usd(int(shares) * price)
+            total = usd(int(shares) * price)
 
-        flash(f"Success! Bought {shares} share(s) of {ticker} for {total} at {str(usd(price))} per share.",
-              "notification")
+            flash(f"Success! Bought {shares} share(s) of {ticker} for {total} at {str(usd(price))} per share.",
+                "success")
+        else:
+            flash(msg, "error")
 
         return redirect("/")
 
@@ -185,7 +201,7 @@ def deposit():
         db.execute("UPDATE users SET cash = ? WHERE id = ?", cash, session["user_id"])
 
 
-        flash(f"Success! Deposited ${amount}")
+        flash(f"Success! Deposited ${amount}", "success")
 
         return redirect("/")
 
@@ -228,7 +244,7 @@ def login():
 
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
-        broker_client.uid = session["user_id"]
+        broker_client.uid = int(session["user_id"])
 
         # Redirect user to home page
 
@@ -354,14 +370,12 @@ def register():
 
         session["user_id"] = rows[0]["id"]
 
-        
-
         try:
             broker_client.Register(int(session["user_id"]))
         except:
             return apology("server is down")
         
-        flash("Registration successful!", "notification")
+        flash("Registration successful!", "success")
 
         flash("Welcome to Gouda Exchange!", 'welcome')
 
@@ -425,7 +439,7 @@ def sell():
         total = usd(stock["price"] * int(share_request))
 
         flash("Success! Sold " + share_request + " share(s) for " + total + ", at " + usd(stock['price']) + " per share.",
-              "notification")
+              "success")
 
         return redirect("/")
 
@@ -446,4 +460,8 @@ for code in default_exceptions:
     app.errorhandler(code)(errorhandler)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    db.execute("""CREATE TABLE IF NOT EXISTS 'transactions' ('id' integer PRIMARY KEY AUTOINCREMENT NOT NULL, 'user-id' integer NOT NULL, 'symbol' text NOT NULL, 'shares' integer NOT NULL, 'price' double precision NOT NULL, 'time' datetime DEFAULT CURRENT_TIMESTAMP);""")
+    # db.execute("""CREATE UNIQUE INDEX 'ids' ON "transactions" ("id" ASC);""")
+    db.execute("""CREATE TABLE IF NOT EXISTS 'users' ('id' INTEGER, 'username' TEXT NOT NULL UNIQUE, 'hash' TEXT NOT NULL, 'cash' NUMERIC NOT NULL DEFAULT 0.00, PRIMARY KEY(id));""")
+    #db.execute("""CREATE UNIQUE INDEX username ON users (username);""")
+    app.run(debug=True, host = "0.0.0.0", port = 8080)
