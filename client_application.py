@@ -67,7 +67,7 @@ def index():
     if not success:
         return apology(msg, 400)
 
-    # stocks = get_user_stocks(db, session["user_id"])
+    # stocks = get_user_stocks(db, session["user_id"]) po
 
     stocks = []
     for ticker, shares in owned_stocks.items():
