@@ -54,7 +54,7 @@ class Broker(BrokerServiceServicer):
         return exchange_pb2.Result(result=True)
 
     def DepositCash(self, request, context):
-        if request.uid not in self.uid_to_user.keys().pickle:
+        if request.uid not in self.uid_to_user.keys():
             # just return empty regardless; non-compliant client
             return exchange_pb2.Empty()
 
@@ -132,7 +132,6 @@ class Broker(BrokerServiceServicer):
         request_uid = request.uid
         request.uid = self.uid
         response = self.stub.SendOrder(request=request)
-
 
         if not response:
             self.sprint("Error communicating with exchange ")

@@ -14,7 +14,7 @@ class ExchangeServer(ExchangeServiceServicer):
     def __init__(self, id: int, silent=False) -> None:
         self.ID = id
         self.SILENT = silent
-        self.DEBUG = False
+        self.DEBUG = True
 
         # initialize channel constants
         self.HOST = socket.gethostbyname(socket.gethostname())
