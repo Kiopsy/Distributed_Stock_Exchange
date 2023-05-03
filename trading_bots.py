@@ -3,7 +3,7 @@ from client import BrokerClient
 import constants as c
 from helpers import sigint_handler
 
-def stupid_bot(uid: int):
+def stupid_bot(uid: int) -> None:
     channel = grpc.insecure_channel(f"{c.BROKER_IP[1]}:{c.BROKER_IP[0]}")
     broker_client = BrokerClient(channel)
 
@@ -28,7 +28,7 @@ def stupid_bot(uid: int):
 
         shares = random.randint(1, 50)
 
-        price = random.randint(10, 100) if bid_ask == 0 else random.randint(100, 200)
+        price = random.randint(10, 200) if bid_ask == 0 else random.randint(50, 200)
 
         msg, success = broker_client.SendOrder(BID_ASK[bid_ask], ticker, shares, price, uid)
 
@@ -41,8 +41,8 @@ def stupid_bot(uid: int):
 def main():
     processes = []
 
-    for i in range(c.NUM_BOTS):
-        process = multiprocessing.Process(target=stupid_bot, args=(i+262, ))
+    for _ in range(c.NUM_BOTS):
+        process = multiprocessing.Process(target=stupid_bot, args=(len(processes)+262, ))
         processes.append(process)
 
     # Allow for ctrl-c exiting
