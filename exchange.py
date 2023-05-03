@@ -1,7 +1,7 @@
 import socket, threading, time, grpc, pickle, os, sys, signal, multiprocessing
 import exchange_pb2
 from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_ExchangeServiceServicer_to_server
-from helpers import ThreadSafeSet
+from helpers import ThreadSafeSet, sigint_handler
 import constants as c
 from concurrent import futures
 from limit_order_book import LimitOrderBook
@@ -14,12 +14,10 @@ class ExchangeServer(ExchangeServiceServicer):
     def __init__(self, id: int, silent=False) -> None:
         self.ID = id
         self.SILENT = silent
-        self.DEBUG = False
+        self.DEBUG = True
 
         # initialize channel constants
-        # self.HOST = socket.gethostbyname(socket.gethostname())
-        self.HOST = "10.250.176.56"
-        # self.HOST = "10.250.36.224"
+        self.HOST = socket.gethostbyname(socket.gethostname())
         self.PORT = 50050 + self.ID
 
         # dict of the other servers' ports -> their host/ips
@@ -442,17 +440,6 @@ def serve(id):
     exchange.heartbeat_thread.start()
     server.wait_for_termination()
 
-# clean control c exiting
-def sigint_handler(signum, frame):
-    # terminate all child processes
-    for process in multiprocessing.active_children():
-        process.terminate()
-    # exit the main process without raising SystemExit
-    try:
-        sys.exit(0)
-    except SystemExit:
-        pass
-
 def main():
     # Allow for server creation by id through command-line args
     if len(sys.argv) == 2:
@@ -481,6 +468,5 @@ def main():
 if __name__ == '__main__':
     # Get your own hostname:
     hostname = socket.gethostbyname(socket.gethostname())
-    # hostname = "10.250.36.224"
     print("Hostname:", hostname)
     main()

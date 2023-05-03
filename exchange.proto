@@ -40,7 +40,7 @@ service BrokerService {
   rpc GetOrderList(Ticker) returns (OrderList) {}
 
   // From broker to user
-  rpc OrderFill(UserInfo) returns (FillInfo) {}
+  rpc OrderFill(UserInfo) returns (BrokerFillInfo) {}
 }
 
 
@@ -121,9 +121,10 @@ message FillInfo {
 
 message BrokerFillInfo {
   int32 oid = 1;
-  OrderType order_type = 2;
-  int32 amount_filled = 3;
-  int32 execution_price = 4;
+  string ticker = 2;
+  OrderType order_type = 3;
+  int32 amount_filled = 4;
+  int32 execution_price = 5;
 }
 
 message OrderInfo {

@@ -1,4 +1,4 @@
-import threading, grpc, exchange_pb2_grpc, exchange_pb2, random, time
+import threading, grpc, exchange_pb2_grpc, exchange_pb2, random, time, multiprocessing, sys
 from concurrent import futures
 import constants as c
 
@@ -126,14 +126,13 @@ class ThreadSafeSet:
             return iter(self._set)
 
 
-def state_machine_encoder(operation, keys, value = None, value_type = None):
-    return operation + c.DIVIDER + str(keys) + c.DIVIDER + str(value) + c.DIVIDER + str(value_type)
-
-def state_machine_decoder(encoded_str):
-    operation, keys, value, value_type = encoded_str.split(c.DIVIDER)
-
-    operation = int(operation)
-    keys = exec(keys)
-    value = exec(value_type)(value)
-
-    return operation, keys, value
+# clean control c exiting
+def sigint_handler(signum, frame):
+    # terminate all child processes
+    for process in multiprocessing.active_children():
+        process.terminate()
+    # exit the main process without raising SystemExit
+    try:
+        sys.exit(0)
+    except SystemExit:
+        pass

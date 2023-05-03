@@ -66,10 +66,6 @@ class LimitOrderBook:
     def get_orderbook(self):
         return ([heap_el[2] for heap_el in self.bids], [heap_el[2] for heap_el in self.asks[:]])
     
-    def print_orderbook(self):
-        # Do we need this
-        print(f"Orderbook {self.ticker}: [BIDS] {[heap_el[2] for heap_el in self.bids]} [ASKS] {[heap_el[2] for heap_el in self.asks[:]]}")
-    
     def cancel_order_by_oid(self, cancel_oid):
         did_delete = False
         
@@ -130,3 +126,7 @@ class LimitOrderBook:
                 break
             
         return filled_orders
+    
+    def __str__(self):
+        return f"[BIDS] {[heap_el[2] for heap_el in self.bids]} [ASKS] {[heap_el[2] for heap_el in self.asks[:]]}" 
+

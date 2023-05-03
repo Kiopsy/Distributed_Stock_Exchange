@@ -425,7 +425,7 @@ class BrokerServiceStub(object):
         self.OrderFill = channel.unary_unary(
                 '/exchange.BrokerService/OrderFill',
                 request_serializer=exchange__pb2.UserInfo.SerializeToString,
-                response_deserializer=exchange__pb2.FillInfo.FromString,
+                response_deserializer=exchange__pb2.BrokerFillInfo.FromString,
                 )
 
 
@@ -545,7 +545,7 @@ def add_BrokerServiceServicer_to_server(servicer, server):
             'OrderFill': grpc.unary_unary_rpc_method_handler(
                     servicer.OrderFill,
                     request_deserializer=exchange__pb2.UserInfo.FromString,
-                    response_serializer=exchange__pb2.FillInfo.SerializeToString,
+                    response_serializer=exchange__pb2.BrokerFillInfo.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -723,6 +723,6 @@ class BrokerService(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/exchange.BrokerService/OrderFill',
             exchange__pb2.UserInfo.SerializeToString,
-            exchange__pb2.FillInfo.FromString,
+            exchange__pb2.BrokerFillInfo.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
