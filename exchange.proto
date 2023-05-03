@@ -19,7 +19,7 @@ service ExchangeService {
   // From institutions to exchange 
   rpc SendOrder(OrderInfo) returns (OrderId) {}
   rpc CancelOrder(OrderId) returns (Result) {}
-  rpc GetOrderList(Empty) returns (OrderInfo) {}
+  rpc GetOrderList(Ticker) returns (OrderList) {}
   rpc DepositCash(Deposit) returns (Result) {}
 
   // From exchange to institutions, brokers
@@ -37,6 +37,7 @@ service BrokerService {
   rpc GetBalance(UserId) returns (Balance) {}
   rpc DepositCash(Deposit) returns (Empty) {}
   rpc GetStocks(UserId) returns (UserStocks) {}
+  rpc GetOrderList(Ticker) returns (OrderList) {}
 
   // From broker to user
   rpc OrderFill(UserInfo) returns (FillInfo) {}
@@ -46,6 +47,14 @@ service BrokerService {
 enum OrderType {
   BID = 0;
   ASK = 1; 
+}
+
+message OrderList {
+  bytes pickle = 1;
+}
+
+message Ticker {
+  string ticker = 1;
 }
 
 message UserStocks {
@@ -108,6 +117,13 @@ message FillInfo {
   int32 oid = 1;
   int32 amount_filled = 2;
   int32 execution_price = 3;
+}
+
+message BrokerFillInfo {
+  int32 oid = 1;
+  OrderType order_type = 2;
+  int32 amount_filled = 3;
+  int32 execution_price = 4;
 }
 
 message OrderInfo {

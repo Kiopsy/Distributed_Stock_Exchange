@@ -42,7 +42,7 @@ class Broker(BrokerServiceServicer):
     
     def sprint(self, *args, **kwargs):
         print("Broker:", *args, **kwargs)
-        
+
     def Register(self, request, context):
         if request.uid in self.uid_to_user.keys():
             return exchange_pb2.Result(result=False)
@@ -63,6 +63,9 @@ class Broker(BrokerServiceServicer):
         self.stub.DepositCash(exchange_pb2.Deposit(uid=self.uid, amount=request.amount))
         self.sprint(f"User id {request.uid} has deposited {request.amount} dollars")
         return exchange_pb2.Empty()
+    
+    def GetOrderList(self, request, context):
+        return self.stub.GetOrderList(request)
 
     def SendOrder(self, request, context):
         if request.type == exchange_pb2.OrderType.BID:
