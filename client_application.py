@@ -86,8 +86,6 @@ def index():
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
 def buy():
-    """Buy shares of stock"""
-
     if request.method == "POST":
 
         ticker = request.form.get("symbol")
@@ -153,7 +151,7 @@ def buy():
 
             total = usd(int(shares) * price)
 
-            flash(f"Success! Bought {shares} share(s) of {ticker} for {total} at {str(usd(price))} per share.",
+            flash(f"Success! You placed an order for {shares} share(s) of {ticker} at {str(usd(price))} per share.",
                 "success")
         else:
             flash(msg, "error")
@@ -162,6 +160,78 @@ def buy():
 
     else:
         return render_template("buy.html")
+
+@app.route("/ask", methods=["GET", "POST"])
+@login_required
+def ask():
+    if request.method == "POST":
+
+        ticker = request.form.get("symbol")
+
+        if not ticker or ticker not in c.TICKERS:
+            return apology("please enter a valid ticker symbol", 400)
+
+        shares = request.form.get("shares")
+
+        if not shares:
+            return apology("please enter # of shares", 400)
+
+        if not shares.isdigit():
+            return apology("please enter a *number* of shares", 400)
+
+        if "." in shares:
+            return apology("cannot buy fractional shares", 400)
+
+        if int(shares) < 1:
+            return apology("please enter a valid amount of shares", 400)
+        
+        shares = int(shares)
+
+        price = request.form.get("price")
+
+        if not price:
+            return apology("please enter # of price", 400)
+
+        if not price.isdigit():
+            return apology("please enter a *number* of price", 400)
+
+        if "." in price:
+            return apology("cannot buy fractional price", 400)
+
+        if int(price) < 1:
+            return apology("please enter a valid amount of price", 400)
+        
+        price = int(price)
+
+        cash = db.execute("SELECT cash FROM users WHERE id = ?", session["user_id"])
+
+        if cash:
+            cash = float(cash[0]["cash"])
+        else:
+            return apology("something went wrong on our end and we could not process the transaction.", 501)
+
+        if cash < round(int(shares) * price, 2):
+            return apology("not enough balance in account for transaction", 400)
+        
+        try:
+            msg, success = broker_client.SendOrder(exchange_pb2.OrderType.ASK, ticker, shares, price, session["user_id"])
+        except:
+            return apology("server is down", 400)
+        
+        if success:
+
+            db.execute("INSERT INTO transactions (\"user-id\", symbol, shares, price) VALUES(?, ?, ?, ?)",
+                    session["user_id"], ticker, int(shares), price)
+
+            flash(f"Success! You placed an order to sell {shares} share(s) of {ticker} at {str(usd(price))} per share.",
+                "success")
+        else:
+            flash(msg, "error")
+
+        return redirect("/")
+
+    else:
+        return render_template("ask.html")
 
 @app.route("/deposit", methods=["GET", "POST"])
 @login_required

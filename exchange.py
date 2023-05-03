@@ -14,7 +14,7 @@ class ExchangeServer(ExchangeServiceServicer):
     def __init__(self, id: int, silent=False) -> None:
         self.ID = id
         self.SILENT = silent
-        self.DEBUG = True
+        self.DEBUG = False
 
         # initialize channel constants
         # self.HOST = socket.gethostbyname(socket.gethostname())
@@ -369,13 +369,13 @@ class ExchangeServer(ExchangeServiceServicer):
         self.debug_print("[CancelOrder]", "Exiting successfully")
         return exchange_pb2.Result(result=result)
     
-    # WIP TODO
-    # rpc func "GetOrderList": 
-    # could probably skip this for now tbh
     @connection_required
-    def GetOrderList(self, request, context) -> exchange_pb2.OrderInfo:
+    def GetOrderList(self, request, context):
+        if request.ticker not in self.db.get_db()["orderbooks"].keys():
+            return exchange_pb2.OrderList(pickle=bytes())
         book = self.db.get_db()["orderbooks"]["GOOGL"]
-        return book.get_orderbook()
+        pickled = pickle.dumps(book)
+        return exchange_pb2.OrderList(pickle=pickled)
 
     # rpc func "DepositCash": 
     @connection_required
