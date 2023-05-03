@@ -137,6 +137,7 @@ class BrokerClientUI(tk.Tk):
 
                     
     def create_widgets(self):
+<<<<<<< HEAD
         # Set up fonts and colors
         self.title_font = tkfont.Font(family="Helvetica", size=18, weight="bold")
         self.label_font = tkfont.Font(family="Helvetica", size=14)
@@ -144,6 +145,12 @@ class BrokerClientUI(tk.Tk):
         self.button_font = tkfont.Font(family="Helvetica", size=14, weight="bold")
         self.status_font = tkfont.Font(family="Helvetica", size=12)
         self.primary_color = "#4a86e8"
+=======
+        # self.logo_image = PhotoImage(file="/cs262-final-project/logo.png")
+        # self.logo_image = self.logo_image.subsample(2, 2)  # Adjust the numbers (2, 2) to resize the logo
+        # self.logo_label = tk.Label(self, image=self.logo_image)
+        # self.logo_label.grid(row=0, column=0, columnspan=2)
+>>>>>>> b26ed855ff7b85623c8ea4ac212028ce9d7e1345
 
 
         script_dir = os.path.dirname(os.path.realpath(__file__))

@@ -9,8 +9,6 @@ from collections import deque
 import exchange_pb2_grpc
 import pickle
 
-FEE = 1
-
 class Order:
     def __init__(self, oid: int, uid: int, amount: int, 
                  ticker: str, price: int, side: exchange_pb2.OrderType) -> None:
@@ -27,7 +25,7 @@ class User:
         self.balance = 0
         self.oids: Set[int] = {}
         self.ticker_balances: Dict[str, int] = {}
-        self.fills: Deque[Tuple[int, int]] = deque()
+        self.fills: Deque[Tuple[int, int, int]] = deque()
 
 class Broker(BrokerServiceServicer):
     def __init__(self) -> None:
@@ -35,20 +33,23 @@ class Broker(BrokerServiceServicer):
         self.uid_to_user: Dict[int, User] = {}
         self.oid_to_order: Dict[int, Order] = {}
 
-        self.broker_balance = 10_000 # the broker has $100 (10k cents) to cover fees
+        self.broker_balance = 10_000 # the broker has $100 (10k cents) to cover fee
         self.held_stocks = []
         
         self.stub = nFaultStub()
         if self.stub.connect():
             self.stub.backup_stub_connect_thread.start()
-        
+    
+    def sprint(self, *args, **kwargs):
+        print("Broker:", *args, **kwargs)
+
     def Register(self, request, context):
         if request.uid in self.uid_to_user.keys():
             return exchange_pb2.Result(result=False)
 
         self.uid_to_user[request.uid] = User(request.uid)
 
-        print(f"Registered user id {request.uid}")
+        self.sprint(f"Registered user id {request.uid}")
 
         return exchange_pb2.Result(result=True)
 
@@ -60,8 +61,11 @@ class Broker(BrokerServiceServicer):
         self.uid_to_user[request.uid].balance += request.amount
         # Deposit enough cash with exchange to cover any user transactions
         self.stub.DepositCash(exchange_pb2.Deposit(uid=self.uid, amount=request.amount))
-        print(f"User id {request.uid} has deposited {request.amount} dollars")
+        self.sprint(f"User id {request.uid} has deposited {request.amount} dollars")
         return exchange_pb2.Empty()
+    
+    def GetOrderList(self, request, context):
+        return self.stub.GetOrderList(request)
 
     def SendOrder(self, request, context):
         if request.type == exchange_pb2.OrderType.BID:
@@ -75,7 +79,12 @@ class Broker(BrokerServiceServicer):
 
         stocks_bytes = pickle.dumps(self.uid_to_user[request.uid].ticker_balances)
 
-        return exchange_pb2.UserStocks(stocks_bytes)
+        return exchange_pb2.UserStocks(pickle=stocks_bytes)
+    
+    def GetBalance(self, request, context):
+        if request.uid not in self.uid_to_user.keys():
+            return exchange_pb2.Balance(balance=-1)
+        return exchange_pb2.Balance(balance=self.uid_to_user[request.uid].balance)
 
     def CancelOrder(self, request, context):
         if request.uid not in self.uid_to_user.keys():
@@ -84,7 +93,7 @@ class Broker(BrokerServiceServicer):
         if request.oid not in self.oid_to_order.keys():
             return exchange_pb2.Result(result=False)
 
-        print(f"User id {request.uid} is attempting to cancel {request.oid}")
+        self.sprint(f"User id {request.uid} is attempting to cancel {request.oid}")
         result = self.stub.CancelOrder(exchange_pb2.OrderId(oid=request.oid))
 
         if result.result:
@@ -93,7 +102,7 @@ class Broker(BrokerServiceServicer):
                 self.uid_to_user[request.uid].balance += order.price * order.amount
             else:
                 self.uid_to_user[request.uid].ticker_balances[order.ticker] += order.amount
-            print(f"User id {request.uid} cancelled {request.oid}")
+            self.sprint(f"User id {request.uid} cancelled {request.oid}")
 
         return result
     
@@ -104,22 +113,23 @@ class Broker(BrokerServiceServicer):
         if len(self.uid_to_user[request.uid].fills) == 0:
             return exchange_pb2.FillInfo(oid=-1, amount_filled=-1)
 
-        oid, amount_filled = self.uid_to_user[request.uid].fills.popleft()
+        oid, amount_filled, execution_price = self.uid_to_user[request.uid].fills.popleft()
 
-        print(f"User id {request.uid} had a filled order sent")
-        return exchange_pb2.FillInfo(oid=oid, amount_filled=amount_filled)
+        self.sprint(f"User id {request.uid} had a filled order sent")
+        return exchange_pb2.FillInfo(oid=oid, amount_filled=amount_filled, execution_price=execution_price)
 
     def handle_bid(self, request):
         if request.uid not in self.uid_to_user.keys():
             return exchange_pb2.OrderId(oid=-1)
         
-        print(f"Handling bid for User id {request.uid}")
+        self.sprint(f"Handling bid for User id {request.uid}")
         balance = self.uid_to_user[request.uid].balance
 
         # Note that all costs are in cents
         cost = request.price * request.quantity
 
-        if cost + FEE > balance:
+
+        if cost + c.BROKER_FEE > balance:
             return exchange_pb2.OrderId(oid=-1)
 
         request_uid = request.uid
@@ -127,16 +137,16 @@ class Broker(BrokerServiceServicer):
         response = self.stub.SendOrder(request=request)
 
         if not response:
-            print("Error communicating with exchange ")
+            self.sprint("Error communicating with exchange ")
             return exchange_pb2.OrderId(oid=-1)
 
         if response.oid == -1:
             # don't charge the cost if the order doesn't go through, only fee
-            self.uid_to_user[request.uid].balance -= FEE
+            self.uid_to_user[request.uid].balance -= c.BROKER_FEE
             return exchange_pb2.OrderId(oid=-1)
 
-        self.uid_to_user[request_uid].balance -= cost + FEE
-        self.broker_balance += FEE - c.EXCHANGE_FEE
+        self.uid_to_user[request_uid].balance -= cost + c.BROKER_FEE
+        self.broker_balance += c.BROKER_FEE - c.EXCHANGE_FEE
         self.oid_to_order[response.oid] = Order(response.oid, 
                                                 request_uid,
                                                 request.quantity,
@@ -156,7 +166,7 @@ class Broker(BrokerServiceServicer):
         if request.ticker not in self.uid_to_user[request.uid].ticker_balances.keys():
             return exchange_pb2.OrderId(oid=-1)
         
-        print(f"Asked ticker: {request.ticker}")
+        self.sprint(f"Asked ticker: {request.ticker}")
 
         if request.quantity <= 0:
             return exchange_pb2.OrderId(oid=-1)
@@ -164,7 +174,7 @@ class Broker(BrokerServiceServicer):
         quantity_owned = self.uid_to_user[request.uid].ticker_balances.get(request.ticker, 0)
         
         if request.quantity > quantity_owned:
-            print(f"User doesn't have enough owned, only owns {quantity_owned}, aborting")
+            self.sprint(f"User doesn't have enough owned, only owns {quantity_owned}, aborting")
             return exchange_pb2.OrderId(oid=-1)
 
         # Send order to the exchange. Once the order is queued,
@@ -174,11 +184,11 @@ class Broker(BrokerServiceServicer):
         response = self.stub.SendOrder(request=request)
 
         if response.oid == -1:
-            print("Exchange returns -1")
+            self.sprint("Exchange returns -1")
             return exchange_pb2.OrderId(oid=-1)
 
-        self.uid_to_user[request_uid].balance -= FEE
-        self.broker_balance += FEE - c.EXCHANGE_FEE
+        self.uid_to_user[request_uid].balance -= c.BROKER_FEE
+        self.broker_balance += c.BROKER_FEE - c.EXCHANGE_FEE
         self.oid_to_order[response.oid] = Order(response.oid,
                                                 request_uid,
                                                 request.ticker,
@@ -190,19 +200,19 @@ class Broker(BrokerServiceServicer):
         return exchange_pb2.OrderId(oid=response.oid)
 
     def receive_fills(self):
-        print("Receive fills thread started")
+        self.sprint("Receive fills thread started")
         while True:
             fill = self.stub.OrderFill(exchange_pb2.UserInfo(uid=self.uid))
             if not fill:
                 time.sleep(1)
                 continue
             if fill.oid == -1:
-                # print("Received no fill")
+                # self.sprint("Received no fill")
                 time.sleep(0.2) # invalid order
                 continue
-            print(f"Received a fill with oid {fill.oid}")
+            self.sprint(f"Received a fill with oid {fill.oid}")
             order = self.oid_to_order[fill.oid]
-            self.uid_to_user[order.uid].fills.append((order.oid, fill.amount_filled))
+            self.uid_to_user[order.uid].fills.append((order.oid, fill.amount_filled, fill.execution_price))
             self.oid_to_order[fill.oid].amount -= fill.amount_filled
             if order.side == exchange_pb2.OrderType.BID:
                 shares = self.uid_to_user[order.uid].ticker_balances.get(order.ticker, 0)
@@ -210,7 +220,7 @@ class Broker(BrokerServiceServicer):
             else:
                 self.uid_to_user[order.uid].balance += fill.amount_filled * fill.execution_price
 
-            print(f"User id {order.uid} had a filled order")
+            self.sprint(f"User id {order.uid} had a filled order")
 
             time.sleep(.1) # latency?
 

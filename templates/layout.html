@@ -19,14 +19,17 @@
         <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
 
-        <title>C$50 Finance: {% block title %}{% endblock %}</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.3/socket.io.js"></script>
+
+
+        <title>Gouda Exchange: {% block title %}{% endblock %}</title>
 
     </head>
 
     <body>
 
         <nav class="navbar navbar-expand-md navbar-light bg-light border">
-            <a class="navbar-brand" href="/"><span class="blue">C</span><span class="red">$</span><span class="yellow">5</span><span class="green">0</span> <span class="red">Finance</span></a>
+            <a class="navbar-brand" href="/">Gouda Exchange</span></a>
             <button aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler" data-target="#navbar" data-toggle="collapse" type="button">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -34,8 +37,9 @@
                 {% if session.user_id %}
                     <ul class="navbar-nav mr-auto mt-2">
                         <li class="nav-item"><a class="nav-link" href="/quote">Quote</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/buy">Buy</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/sell">Sell</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/deposit">Deposit</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/buy">Bid</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/ask">Ask</a></li>
                         <li class="nav-item"><a class="nav-link" href="/history">History</a></li>
                     </ul>
                     <ul class="navbar-nav ml-auto mt-2">
@@ -63,6 +67,45 @@
         {% with notifs = get_flashed_messages(category_filter=['notification']) %}
             {% if notifs %}
                 {% for notif in notifs %}
+                    <div class="alert alert-primary alert-dismissible fade show text-center" role="alert">
+                        {{ notif }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% with notifs = get_flashed_messages(category_filter=['error']) %}
+            {% if notifs %}
+                {% for notif in notifs %}
+                    <div class="alert alert-danger alert-dismissible fade show text-center" role="alert">
+                        {{ notif }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% with notifs = get_flashed_messages(category_filter=['warning']) %}
+            {% if notifs %}
+                {% for notif in notifs %}
+                    <div class="alert alert-warning alert-dismissible fade show text-center" role="alert">
+                        {{ notif }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% with notifs = get_flashed_messages(category_filter=['success']) %}
+            {% if notifs %}
+                {% for notif in notifs %}
                     <div class="alert alert-success alert-dismissible fade show text-center" role="alert">
                         {{ notif }}
                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -77,10 +120,15 @@
             {% block main %}{% endblock %}
         </main>
 
-        <footer class="small text-center text-muted">
+        <!-- <footer class="small text-center text-muted">
             Data provided for free by <a href="https://iextrading.com/developer">IEX</a>. View <a href="https://iextrading.com/api-exhibit-a/">IEX’s Terms of Use</a>.
-        </footer>
-
+        </footer> -->
+        <script>
+            var socket = io();
+            socket.on('update', function(data) {
+              document.getElementById('cash').innerHTML = data;
+            });
+          </script>
     </body>
 
 </html>

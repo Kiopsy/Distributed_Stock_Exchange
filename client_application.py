@@ -5,11 +5,18 @@ from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
 from werkzeug.security import check_password_hash, generate_password_hash
+from client import BrokerClient
+import constants as c
+import grpc
+import exchange_pb2
 
-from helpers import apology, login_required, lookup, usd, intraday_endpoints, get_user_stocks, get_news
+from client_helpers import apology, login_required, lookup, usd, intraday_endpoints, get_user_stocks, get_news
 
 # Configure application
 app = Flask(__name__)
+
+channel = grpc.insecure_channel(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
+broker_client = BrokerClient(channel)
 
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -35,6 +42,7 @@ Session(app)
 db = SQL("sqlite:///finance.db")
 
 # Make sure API key is set
+os.environ["API_KEY"] = "sk_1463654bf81f469798bf7cf5a57c270c"
 if not os.environ.get("API_KEY"):
     raise RuntimeError("API_KEY not set")
 
@@ -51,7 +59,19 @@ def index():
         username = user[0]['username']
         balance = usd(user[0]['cash'])
 
-    stocks = get_user_stocks(db, session["user_id"])
+    try:
+        msg, success, owned_stocks = broker_client.GetStocks()
+    except:
+        return apology("server is down", 400)
+    
+    if not success:
+        return apology(msg, 400)
+
+    # stocks = get_user_stocks(db, session["user_id"]) po
+
+    stocks = []
+    for ticker, shares in owned_stocks.items():
+        stocks.append({"symbol": ticker, "shares": shares, "value": 1})
 
     for stock in stocks:
         info = lookup(stock["symbol"])
@@ -66,14 +86,12 @@ def index():
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
 def buy():
-    """Buy shares of stock"""
-
     if request.method == "POST":
 
-        stock = lookup(request.form.get("symbol"))
+        ticker = request.form.get("symbol")
 
-        if not stock:
-            return apology("please enter a valid stock symbol", 400)
+        if not ticker or ticker not in c.TICKERS:
+            return apology("please enter a valid ticker symbol", 400)
 
         shares = request.form.get("shares")
 
@@ -88,6 +106,24 @@ def buy():
 
         if int(shares) < 1:
             return apology("please enter a valid amount of shares", 400)
+        
+        shares = int(shares)
+
+        price = request.form.get("price")
+
+        if not price:
+            return apology("please enter # of price", 400)
+
+        if not price.isdigit():
+            return apology("please enter a *number* of price", 400)
+
+        if "." in price:
+            return apology("cannot buy fractional price", 400)
+
+        if int(price) < 1:
+            return apology("please enter a valid amount of price", 400)
+        
+        price = int(price)
 
         cash = db.execute("SELECT cash FROM users WHERE id = ?", session["user_id"])
 
@@ -96,26 +132,151 @@ def buy():
         else:
             return apology("something went wrong on our end and we could not process the transaction.", 501)
 
-        if cash < round(int(shares) * stock["price"], 2):
+        if cash < round(int(shares) * price, 2):
             return apology("not enough balance in account for transaction", 400)
+        
+        try:
+            msg, success = broker_client.SendOrder(exchange_pb2.OrderType.BID, ticker, shares, price, session["user_id"])
+        except:
+            return apology("server is down", 400)
+        
+        if success:
 
-        db.execute("INSERT INTO transactions (\"user-id\", symbol, shares, price) VALUES(?, ?, ?, ?)",
-                   session["user_id"], stock["symbol"], int(shares), stock["price"])
+            db.execute("INSERT INTO transactions (\"user-id\", symbol, shares, price) VALUES(?, ?, ?, ?)",
+                    session["user_id"], ticker, int(shares), price)
 
-        cash = round(cash - int(shares) * stock["price"], 2)
+            cash = round(cash - int(shares) * price - c.BROKER_FEE, 2) 
 
-        db.execute("UPDATE users SET cash = ? WHERE id = ?", cash, session["user_id"])
+            db.execute("UPDATE users SET cash = ? WHERE id = ?", cash, session["user_id"])
 
-        total = usd(int(shares) * stock["price"])
+            total = usd(int(shares) * price)
 
-        flash("Success! Bought " + shares + " share(s) of " + stock['symbol'] + " for " + total + " at " + str(usd(stock['price'])) + " per share.",
-              "notification")
+            flash(f"Success! You placed an order for {shares} share(s) of {ticker} at {str(usd(price))} per share.",
+                "success")
+        else:
+            flash(msg, "error")
 
         return redirect("/")
 
     else:
         return render_template("buy.html")
 
+@app.route("/ask", methods=["GET", "POST"])
+@login_required
+def ask():
+    if request.method == "POST":
+
+        ticker = request.form.get("symbol")
+
+        if not ticker or ticker not in c.TICKERS:
+            return apology("please enter a valid ticker symbol", 400)
+
+        shares = request.form.get("shares")
+
+        if not shares:
+            return apology("please enter # of shares", 400)
+
+        if not shares.isdigit():
+            return apology("please enter a *number* of shares", 400)
+
+        if "." in shares:
+            return apology("cannot buy fractional shares", 400)
+
+        if int(shares) < 1:
+            return apology("please enter a valid amount of shares", 400)
+        
+        shares = int(shares)
+
+        price = request.form.get("price")
+
+        if not price:
+            return apology("please enter # of price", 400)
+
+        if not price.isdigit():
+            return apology("please enter a *number* of price", 400)
+
+        if "." in price:
+            return apology("cannot buy fractional price", 400)
+
+        if int(price) < 1:
+            return apology("please enter a valid amount of price", 400)
+        
+        price = int(price)
+
+        cash = db.execute("SELECT cash FROM users WHERE id = ?", session["user_id"])
+
+        if cash:
+            cash = float(cash[0]["cash"])
+        else:
+            return apology("something went wrong on our end and we could not process the transaction.", 501)
+
+        if cash < round(int(shares) * price, 2):
+            return apology("not enough balance in account for transaction", 400)
+        
+        try:
+            msg, success = broker_client.SendOrder(exchange_pb2.OrderType.ASK, ticker, shares, price, session["user_id"])
+        except:
+            return apology("server is down", 400)
+        
+        if success:
+
+            db.execute("INSERT INTO transactions (\"user-id\", symbol, shares, price) VALUES(?, ?, ?, ?)",
+                    session["user_id"], ticker, int(shares), price)
+
+            flash(f"Success! You placed an order to sell {shares} share(s) of {ticker} at {str(usd(price))} per share.",
+                "success")
+        else:
+            flash(msg, "error")
+
+        return redirect("/")
+
+    else:
+        return render_template("ask.html")
+
+@app.route("/deposit", methods=["GET", "POST"])
+@login_required
+def deposit():
+    """Deposit cash into amount"""
+
+    if request.method == "POST":
+
+        amount = request.form.get("amount")
+
+        if not amount:
+            return apology("please enter an amount to deposit", 400)
+
+        if not amount.isdigit():
+            return apology("please enter a numerical value", 400)
+
+        if float(amount) <= 0:
+            return apology("please enter an amount >= 0", 400)
+
+        cash = db.execute("SELECT cash FROM users WHERE id = ?", session["user_id"])
+
+        if cash:
+            cash = float(cash[0]["cash"])
+        else:
+            return apology("something went wrong on our end and we could not process the transaction.", 501)
+
+
+        cash += float(amount)
+
+        amount = int(amount)
+
+        try:
+            broker_client.DepositCash(amount)
+        except:
+            return apology("sever is down", 400)
+
+        db.execute("UPDATE users SET cash = ? WHERE id = ?", cash, session["user_id"])
+
+
+        flash(f"Success! Deposited ${amount}", "success")
+
+        return redirect("/")
+
+    else:
+        return render_template("deposit.html")
 
 @app.route("/history")
 @login_required
@@ -153,6 +314,7 @@ def login():
 
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
+        broker_client.uid = int(session["user_id"])
 
         # Redirect user to home page
 
@@ -278,9 +440,14 @@ def register():
 
         session["user_id"] = rows[0]["id"]
 
-        flash("Registration successful!", "notification")
+        try:
+            broker_client.Register(int(session["user_id"]))
+        except:
+            return apology("server is down")
+        
+        flash("Registration successful!", "success")
 
-        flash("Welcome to C$50 finance!", 'welcome')
+        flash("Welcome to Gouda Exchange!", 'welcome')
 
         return redirect("/")
 
@@ -342,7 +509,7 @@ def sell():
         total = usd(stock["price"] * int(share_request))
 
         flash("Success! Sold " + share_request + " share(s) for " + total + ", at " + usd(stock['price']) + " per share.",
-              "notification")
+              "success")
 
         return redirect("/")
 
@@ -361,3 +528,10 @@ def errorhandler(e):
 # Listen for errors
 for code in default_exceptions:
     app.errorhandler(code)(errorhandler)
+
+if __name__ == "__main__":
+    db.execute("""CREATE TABLE IF NOT EXISTS 'transactions' ('id' integer PRIMARY KEY AUTOINCREMENT NOT NULL, 'user-id' integer NOT NULL, 'symbol' text NOT NULL, 'shares' integer NOT NULL, 'price' double precision NOT NULL, 'time' datetime DEFAULT CURRENT_TIMESTAMP);""")
+    # db.execute("""CREATE UNIQUE INDEX 'ids' ON "transactions" ("id" ASC);""")
+    db.execute("""CREATE TABLE IF NOT EXISTS 'users' ('id' INTEGER, 'username' TEXT NOT NULL UNIQUE, 'hash' TEXT NOT NULL, 'cash' NUMERIC NOT NULL DEFAULT 0.00, PRIMARY KEY(id));""")
+    #db.execute("""CREATE UNIQUE INDEX username ON users (username);""")
+    app.run(debug=True, host = "0.0.0.0", port = 8080)
