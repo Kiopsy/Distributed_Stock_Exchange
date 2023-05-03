@@ -13,7 +13,7 @@ def stupid_bot(uid: int):
     broker_client.Register(uid)
 
     # Deposit sufficient funds
-    init_cash = random.randint(500, 10_000)
+    init_cash = random.randint(500, 100_000)
     broker_client.DepositCash(uid, init_cash)
 
     # Make Bids or Asks
