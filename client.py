@@ -98,33 +98,33 @@ class BrokerClient():
         # send information to the broker client
         self.SendOrder(order_type, ticker, quantity, price, self.uid)
 
-if __name__ == "__main__":
-    channel = grpc.insecure_channel(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
-    client = BrokerClient(channel)
-    while True:
-        print("[1] Register\n[2] Buy/Sell\n[3] Deposit Cash\n[4] Get Stocks")
-        inp = input("> ")
-        if inp == '1':
-            print("What uid?")
-            uid = input("> ")
-            client.Register(uid)
-        elif inp == '2':
-            client.make_order()
-        elif inp == '3':
-            print("How much?")
-            amount = input("> ")
-            client.DepositCash(int(amount))
-        else:
-            err, success, stocks = client.GetStocks()
-            if not success:
-                print(err)
-            else:
-                for key, value in stocks.items():
-                    print(f"{key}: {value}")
+# if __name__ == "__main__":
+#     channel = grpc.insecure_channel(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
+#     client = BrokerClient(channel)
+#     while True:
+#         print("[1] Register\n[2] Buy/Sell\n[3] Deposit Cash\n[4] Get Stocks")
+#         inp = input("> ")
+#         if inp == '1':
+#             print("What uid?")
+#             uid = input("> ")
+#             client.Register(uid)
+#         elif inp == '2':
+#             client.make_order()
+#         elif inp == '3':
+#             print("How much?")
+#             amount = input("> ")
+#             client.DepositCash(int(amount))
+#         else:
+#             err, success, stocks = client.GetStocks()
+#             if not success:
+#                 print(err)
+#             else:
+#                 for key, value in stocks.items():
+#                     print(f"{key}: {value}")
 
 import tkinter as tk
 from tkinter import messagebox
-"""
+# """
 class BrokerClientUI(tk.Tk):
     def __init__(self, broker_client):
         super().__init__()
@@ -135,7 +135,7 @@ class BrokerClientUI(tk.Tk):
         self.create_widgets()
                     
     def create_widgets(self):
-        self.logo_image = PhotoImage(file="/Users/feiyang/Documents/GitHub/cs262-final-project/logo.png")
+        self.logo_image = PhotoImage(file="logo.png")
         self.logo_image = self.logo_image.subsample(2, 2)  # Adjust the numbers (2, 2) to resize the logo
         self.logo_label = tk.Label(self, image=self.logo_image)
         self.logo_label.grid(row=0, column=0, columnspan=2)
@@ -251,4 +251,4 @@ def main():
     app.mainloop()
 
 main()
-"""
+# """

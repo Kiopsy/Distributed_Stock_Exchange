@@ -17,7 +17,8 @@ class ExchangeServer(ExchangeServiceServicer):
         self.DEBUG = True
 
         # initialize channel constants
-        self.HOST = socket.gethostbyname(socket.gethostname())
+        # self.HOST = socket.gethostbyname(socket.gethostname())
+        self.HOST = "10.250.176.56"
         # self.HOST = "10.250.36.224"
         self.PORT = 50050 + self.ID
 
