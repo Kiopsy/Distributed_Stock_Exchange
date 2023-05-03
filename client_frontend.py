@@ -9,18 +9,17 @@ from tkinter import PhotoImage
 class BrokerClient():
     def __init__(self, channel):
         self.stub = BrokerServiceStub(channel)
-        self.uid: Optional[int]
+        self.uid: Optional[int] = None  # Initialize
     
-    def Register(self, uid) -> None:
+    def Register(self, uid: int) -> None:
         result = self.stub.Register(exchange_pb2.UserInfo(uid=int(uid)))
         if result.result:
             print("Successfully registered")
             self.uid = int(uid)
         else:
             print("Error while registering")
-
     
-    def DepositCash(self, amount) -> bool:
+    def DepositCash(self, amount: int) -> bool:
         if not self.uid:
             print("Please register/log in first.")
             return False
@@ -42,14 +41,20 @@ class BrokerClient():
                                                             type=order_type))
         if result.oid == -1:
             print("Order failed!")
+            return "ORDER_FAILED"
+
         else:
             print(f"Order placed. Order id: {result.oid}")
+            return "ORDER_SUCCESS"
 
     def CancelOrder(self, oid) -> None:
         self.stub.CancelOrder(exchange_pb2.CancelRequest(uid=self.uid, oid=oid))
 
-    # stashing code for later; ignore
     def make_order(self) -> None:
+        if not self.uid:
+            print("Please log in first before using that action.")
+            return
+
         print("Would you like to buy or sell a stock?")
         print("[1] Buy")
         print("[2] Sell")
@@ -74,9 +79,33 @@ class BrokerClient():
         # send information to the broker client
         self.SendOrder(order_type, ticker, quantity, price, self.uid)
 
+    def receive_fills(self, callback):
+        print("Receive fills thread started")
+        while True:
+            if not self.uid:
+                time.sleep(1)
+                continue
+            fill = self.stub.OrderFill(exchange_pb2.UserInfo(uid=self.uid))
+            if fill.oid == -1:
+                time.sleep(0.2)  # invalid order
+                continue
+            print(f"User id {self.uid} had a filled order: Received a fill with oid {fill.oid} and amount filled {fill.amount_filled}")
+            callback(fill)  # Call the callback function with the fill as an argument
+            time.sleep(.1)  # latency?
+
+
+
+
+
+
 # if __name__ == "__main__":
 #     channel = grpc.insecure_channel(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
 #     client = BrokerClient(channel)
+
+#     t = threading.Thread(target=client.receive_fills)
+#     t.daemon = True
+#     t.start()
+
 #     while True:
 #         print("[1] Register\n[2] Buy/Sell\n[3] Deposit Cash")
 #         inp = input("> ")
@@ -105,6 +134,7 @@ class BrokerClientUI(tk.Tk):
         self.broker_client = broker_client
 
         self.create_widgets()
+
                     
     def create_widgets(self):
         # Set up fonts and colors
@@ -171,6 +201,10 @@ class BrokerClientUI(tk.Tk):
         self.deposit_status = tk.Label(self, text="", font=self.status_font, bg="#f0f0f0")
         self.deposit_status.grid(row=11, column=0, columnspan=2, padx=20, pady=10)
 
+        self.deposit_amount = tk.Label(self, text="Current Deposit: $0", font=self.status_font, bg="#f0f0f0")
+        self.deposit_amount.grid(row=11, column=2, columnspan=2, padx=20, pady=10)
+
+
         self.cancel_label = tk.Label(self, text="Cancel Order ID:", font=self.label_font, bg="#f0f0f0")
         self.cancel_entry = tk.Entry(self, font=self.entry_font)
         self.cancel_label.grid(row=12, column=0, padx=20, pady=10, sticky="e")
@@ -181,6 +215,41 @@ class BrokerClientUI(tk.Tk):
 
         self.cancel_status = tk.Label(self, text="", font=self.status_font, bg="#f0f0f0")
         self.cancel_status.grid(row=14, column=0, columnspan=2, padx=20, pady=10)
+
+        self.refresh_stocks_button = tk.Button(self, text="Refresh Stocks", command=self.refresh_stocks, font=self.button_font, bg=self.primary_color, fg="black")
+        self.refresh_stocks_button.grid(row=3, column=2, columnspan=2, padx=20, pady=10)
+
+        self.user_stocks_label = tk.Label(self, text="User's Stocks:", font=self.label_font, bg="#f0f0f0")
+        self.user_stocks_label.grid(row=4, column=2, columnspan=2, padx=20, pady=10)
+
+        self.user_stocks_list = tk.Listbox(self, font=self.entry_font, height=10, width=40)
+        self.user_stocks_list.grid(row=5, column=2, columnspan=2, padx=20, pady=10)
+    
+    def show_fill_notification(self, fill_info):
+        self.after(0, messagebox.showinfo, "Order Filled",
+                f"Your order for {fill_info.amount_filled} shares with order id {fill_info.oid} has been filled.")
+
+
+    def update_deposit_status(self, new_balance):
+        self.deposit_amount.config(text=f"Current Deposit: ${new_balance}")
+
+    def deposit_cash(self):
+        amount = self.deposit_entry.get()
+        try:
+            success = self.broker_client.DepositCash(int(amount))
+            if success:
+                self.deposit_status.config(text="Deposit successful", fg="green")
+
+                # Get the current balance
+                balance = self.broker_client.stub.GetBalance(exchange_pb2.UserId(uid=self.broker_client.uid))
+                print(f"the obtained balance is {balance.balance}")
+
+                # Update the deposit amount label
+                self.update_deposit_status(balance.balance)
+            else:
+                self.deposit_status.config(text="Deposit failed", fg="red")
+        except ValueError:
+            messagebox.showerror("Error", "Invalid input; please enter a valid amount.")
 
 
     def cancel_order(self):
@@ -197,6 +266,11 @@ class BrokerClientUI(tk.Tk):
         self.broker_client.Register(uid)
         if self.broker_client.uid:
             self.registration_status.config(text="Successfully registered", fg="green")
+            
+            # Start fill_listener_thread after successful registration
+            self.fill_listener_thread = threading.Thread(target=self.broker_client.receive_fills, args=(self.show_fill_notification,))
+            self.fill_listener_thread.daemon = True
+            self.fill_listener_thread.start()
         else:
             self.registration_status.config(text="Error while registering", fg="red")
 
@@ -212,20 +286,30 @@ class BrokerClientUI(tk.Tk):
             order_type = exchange_pb2.OrderType.ASK
 
         try:
-            self.broker_client.SendOrder(order_type, ticker, int(quantity), int(price), self.broker_client.uid)
+            send_order_result = self.broker_client.SendOrder(order_type, ticker, int(quantity), int(price), self.broker_client.uid)
+            if send_order_result == "ORDER_FAILED":
+                self.after(0, messagebox.showinfo, "Order Failed",
+                f"Insufficient deposit")
         except ValueError:
             messagebox.showerror("Error", "Invalid, make sure all fields are filled with valid values.")
 
-    def deposit_cash(self):
-        amount = self.deposit_entry.get()
-        try:
-            success = self.broker_client.DepositCash(int(amount))
-            if success:
-                self.deposit_status.config(text="Deposit successful", fg="green")
-            else:
-                self.deposit_status.config(text="Deposit failed", fg="red")
-        except ValueError:
-            messagebox.showerror("Error", "Invalid input; please enter a valid amount.")
+    def refresh_stocks(self):
+        if not self.broker_client.uid:
+            messagebox.showerror("Error", "Please register/log in first.")
+            return
+
+        response = self.broker_client.stub.GetStocks(request = exchange_pb2.UserId(uid=self.broker_client.uid))
+
+
+        user_stocks = pickle.loads(response.stocks)
+        self.user_stocks_list.delete(0, tk.END)
+
+        # Deserialize the user's stocks
+        import pickle
+        stocks = pickle.loads(user_stocks.pickle)
+
+        for stock, quantity in stocks.items():
+            self.user_stocks_list.insert(tk.END, f"{stock}: {quantity}")
 
 def main():
     channel = grpc.insecure_channel(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
