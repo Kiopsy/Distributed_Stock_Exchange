@@ -62,7 +62,20 @@
 
     <h5>
         Current cash balance:
-        <br> {{ balance }}
+        <br id = "cash"> {{ balance }}
     </h5>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+        setInterval(function() {
+            $.getJSON('/get_fill_order', function(data) {
+                if (Object.keys(data).length !== 0) {
+                    location.reload()
+                }
+            });
+        }, 5000); // Update every 5 seconds
+        });
+    </script>
 
 {% endblock %}

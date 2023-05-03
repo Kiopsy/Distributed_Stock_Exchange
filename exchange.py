@@ -14,11 +14,10 @@ class ExchangeServer(ExchangeServiceServicer):
     def __init__(self, id: int, silent=False) -> None:
         self.ID = id
         self.SILENT = silent
-        self.DEBUG = False
+        self.DEBUG = True
 
         # initialize channel constants
-        # self.HOST = socket.gethostbyname(socket.gethostname())
-        self.HOST = "10.250.176.56"
+        self.HOST = socket.gethostbyname(socket.gethostname())
         # self.HOST = "10.250.36.224"
         self.PORT = 50050 + self.ID
 

@@ -84,7 +84,9 @@ class Broker(BrokerServiceServicer):
     def GetBalance(self, request, context):
         if request.uid not in self.uid_to_user.keys():
             return exchange_pb2.Balance(balance=-1)
-        return exchange_pb2.Balance(balance=self.uid_to_user[request.uid].balance)
+        balance = self.uid_to_user[request.uid].balance
+        print(f"User id {request.uid} has balance {balance}")
+        return exchange_pb2.Balance(balance=balance)
 
     def CancelOrder(self, request, context):
         if request.uid not in self.uid_to_user.keys():
@@ -115,8 +117,12 @@ class Broker(BrokerServiceServicer):
 
         oid, amount_filled, execution_price = self.uid_to_user[request.uid].fills.popleft()
 
+        side = self.oid_to_order[oid].side
+        ticker = self.oid_to_order[oid].ticker
+
         self.sprint(f"User id {request.uid} had a filled order sent")
-        return exchange_pb2.FillInfo(oid=oid, amount_filled=amount_filled, execution_price=execution_price)
+        return exchange_pb2.BrokerFillInfo(oid=oid, amount_filled=amount_filled, ticker=ticker,
+                                           execution_price=execution_price, order_type=side)
 
     def handle_bid(self, request):
         if request.uid not in self.uid_to_user.keys():
@@ -191,8 +197,8 @@ class Broker(BrokerServiceServicer):
         self.broker_balance += c.BROKER_FEE - c.EXCHANGE_FEE
         self.oid_to_order[response.oid] = Order(response.oid,
                                                 request_uid,
-                                                request.ticker,
                                                 request.quantity,
+                                                request.ticker,
                                                 request.price,
                                                 exchange_pb2.OrderType.ASK)
         
@@ -212,6 +218,7 @@ class Broker(BrokerServiceServicer):
                 continue
             self.sprint(f"Received a fill with oid {fill.oid}")
             order = self.oid_to_order[fill.oid]
+            fill.amount_filled = int(fill.amount_filled)
             self.uid_to_user[order.uid].fills.append((order.oid, fill.amount_filled, fill.execution_price))
             self.oid_to_order[fill.oid].amount -= fill.amount_filled
             if order.side == exchange_pb2.OrderType.BID:
