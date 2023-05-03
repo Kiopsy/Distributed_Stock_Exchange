@@ -29,8 +29,10 @@ def stupid_bot(uid: int) -> None:
         shares = random.randint(1, 50)
 
         price = random.randint(10, 200) if bid_ask == 0 else random.randint(50, 200)
-
+        
+        start_time = time.time()
         msg, success = broker_client.SendOrder(BID_ASK[bid_ask], ticker, shares, price, uid)
+        latency = time.time() - start_time
 
         if success:
             print(f"Bot {uid}: Placed a {'bid' if bid_ask == 0 else 'ask'} for {shares} stocks of {ticker} at {price} per share")
