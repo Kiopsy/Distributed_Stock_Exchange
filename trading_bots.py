@@ -19,7 +19,7 @@ def stupid_bot(uid: int) -> None:
     # Make Bids or Asks
     while True:
         
-        variance = random.uniform(-1, 1)
+        variance = random.uniform(-c.BOT_ORDER_RATE_VARIANCE, c.BOT_ORDER_RATE_VARIANCE)
         time.sleep(c.BOT_ORDER_RATE + variance)
         
         bid_ask = random.choice([0, 1])
