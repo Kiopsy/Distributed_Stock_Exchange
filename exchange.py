@@ -21,7 +21,7 @@ class ExchangeServer(ExchangeServiceServicer):
         self.PORT = 50050 + self.ID
 
         # dict of the other servers' ports -> their host/ips
-        self.PEER_PORTS : dict[int, str] = c.SERVER_IPS.copy()
+        self.PEER_PORTS : dict[int, str] = {k: c.SERVER_IPS[k] for k in list(c.SERVER_IPS)[:c.NUM_SERVERS]}
         del self.PEER_PORTS[self.PORT]
 
         # dict of the other servers' ports -> bool determining if they are alive
