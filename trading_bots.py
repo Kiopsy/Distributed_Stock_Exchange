@@ -3,7 +3,7 @@ from client import BrokerClient
 import constants as c
 from helpers import sigint_handler
 
-def stupid_bot(uid: int):
+def stupid_bot(uid: int) -> None:
     channel = grpc.insecure_channel(f"{c.BROKER_IP[1]}:{c.BROKER_IP[0]}")
     broker_client = BrokerClient(channel)
 
@@ -13,13 +13,14 @@ def stupid_bot(uid: int):
     broker_client.Register(uid)
 
     # Deposit sufficient funds
-    init_cash = random.randint(500, 10_000)
+    init_cash = random.randint(500, 100_000)
     broker_client.DepositCash(uid, init_cash)
 
     # Make Bids or Asks
     while True:
-
-        time.sleep(c.BOT_ORDER_RATE)
+        
+        variance = random.uniform(-c.BOT_ORDER_RATE_VARIANCE, c.BOT_ORDER_RATE_VARIANCE)
+        time.sleep(c.BOT_ORDER_RATE + variance)
         
         bid_ask = random.choice([0, 1])
 
@@ -27,9 +28,11 @@ def stupid_bot(uid: int):
 
         shares = random.randint(1, 50)
 
-        price = random.randint(10, 100) if bid_ask == 0 else random.randint(100, 200)
-
+        price = random.randint(10, 200) if bid_ask == 0 else random.randint(50, 200)
+        
+        start_time = time.time()
         msg, success = broker_client.SendOrder(BID_ASK[bid_ask], ticker, shares, price, uid)
+        latency = time.time() - start_time
 
         if success:
             print(f"Bot {uid}: Placed a {'bid' if bid_ask == 0 else 'ask'} for {shares} stocks of {ticker} at {price} per share")
@@ -40,8 +43,8 @@ def stupid_bot(uid: int):
 def main():
     processes = []
 
-    for i in range(c.NUM_BOTS):
-        process = multiprocessing.Process(target=stupid_bot, args=(i+262, ))
+    for _ in range(c.NUM_BOTS):
+        process = multiprocessing.Process(target=stupid_bot, args=(len(processes)+262, ))
         processes.append(process)
 
     # Allow for ctrl-c exiting
