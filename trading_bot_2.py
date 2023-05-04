@@ -21,7 +21,7 @@ class SimpleTradingBot:
         self.martingale_multiplier = 2
         self.martingale_current_order_size = self.martingale_base_order_size
         self.grid_spacing = 0.5  # Set the grid spacing in percentage
-        self.grid_order_size = 
+        self.grid_order_size = 1
     def buy_stock(self, ticker, quantity, price):
         order_type = exchange_pb2.OrderType.BID
         self.client.SendOrder(order_type, ticker, quantity, int(price), self.uid)
@@ -100,8 +100,6 @@ class SimpleTradingBot:
         while True:
             self.continuous_trading()
             time.sleep(0.1)  # Sleep for 0.5 seconds before running the strategy again
-
-
 
 
             
