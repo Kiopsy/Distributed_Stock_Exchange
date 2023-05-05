@@ -14,8 +14,8 @@ class ExchangeServer(ExchangeServiceServicer):
         self.DEBUG = True
 
         # initialize channel constants
-        self.HOST = socket.gethostbyname(socket.gethostname())
         self.PORT = 50050 + self.ID
+        self.HOST = c.SERVER_IPS[self.PORT]
 
         # dict of the other servers' ports -> their host/ips
         self.PEER_PORTS : dict[int, str] = {k: c.SERVER_IPS[k] for k in list(c.SERVER_IPS)[:c.NUM_SERVERS]}
@@ -446,6 +446,19 @@ def serve(id):
     exchange.heartbeat_thread.start()
     server.wait_for_termination()
 
+def setup(num_servers: int) -> None:
+    processes = []
+    for i in range(num_servers):
+        process = multiprocessing.Process(target=serve, args=(i, ))
+        processes.append(process)
+
+    # Allow for ctrl-c exiting
+    signal.signal(signal.SIGINT, sigint_handler)
+
+    # Starts each process
+    for process in processes:
+        process.start()
+
 def main():
     # Allow for server creation by id through command-line args
     if len(sys.argv) == 2:
@@ -460,16 +473,7 @@ def main():
         processes = []
     
         # Spawns a new process for each server that we have to run 
-        for i in range(c.NUM_SERVERS):
-            process = multiprocessing.Process(target=serve, args=(i, ))
-            processes.append(process)
-
-        # Allow for ctrl-c exiting
-        signal.signal(signal.SIGINT, sigint_handler)
-
-        # Starts each process
-        for process in processes:
-            process.start()
+        setup(c.NUM_SERVERS)
 
 if __name__ == '__main__':
     # Get your own hostname:

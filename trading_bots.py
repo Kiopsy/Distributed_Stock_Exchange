@@ -3,39 +3,49 @@ from client import BrokerClient
 from institution import InstitutionClient
 import constants as c
 from helpers import sigint_handler
-from typing import Optional
+from typing import Optional, List
+
+BID_ASK = [exchange_pb2.OrderType.BID, exchange_pb2.OrderType.ASK]
 
 class NaiveBot():
     def __init__(self, uid: int, use_broker_client: bool) -> None:
         self.uid = uid
-        self.client = BrokerClient() if use_broker_client else InstitutionClient(uid)
+        self.use_broker_client = use_broker_client
+
+    def initialize(self) -> None:
+        # Needed since multiprocessing doesn't support pickling gRPC objects
+        self.client = BrokerClient() if self.use_broker_client else InstitutionClient(self.uid)
 
         # Register
-        if use_broker_client:
-            self.client.Register(uid)
+        if self.use_broker_client:
+            self.client.Register(self.uid)
 
         # Deposit sufficient funds
         init_cash = random.randint(500, 100_000)
-        self.client.DepositCash(uid, init_cash)
+        self.client.DepositCash(self.uid, init_cash)
     
     def run_throughput_test(self) -> None:
+        self.initialize()
+        num_runs = 0
+        self.client.DepositCash(self.uid, 1000000)
         ticker = c.TICKERS[0]
         price = 100
-        self.client.DepositCash(self.uid, 1000000)
         start_time = time.time()
         while True:
             if time.time() - start_time >= 5:
                 break
+            order_type = BID_ASK[num_runs % 2]
+            self.client.SendOrder(order_type, ticker, 1, price, self.uid)
             num_runs += 1
 
         print(f"Made {num_runs} orders in 5 seconds")
 
     def run(self) -> None:
         while True:
-            self.make_order()
+            self.make_random_order()
 
-    def make_order(self):
-        BID_ASK = [exchange_pb2.OrderType.BID, exchange_pb2.OrderType.ASK]
+    def make_random_order(self):
+        self.initialize()
         variance = random.uniform(-c.BOT_ORDER_RATE_VARIANCE, c.BOT_ORDER_RATE_VARIANCE)
         time.sleep(c.BOT_ORDER_RATE + variance)
         
@@ -56,19 +66,22 @@ class NaiveBot():
     
 
 def setup(use_broker_client: Optional[bool] = None, run_test: Optional[bool] = None):
-    if not use_broker_client:
+    if use_broker_client is None:
         inp = input("Use broker client? [Y/n]")
         use_broker_client = not (inp == 'n' or inp == 'N')
-    if not run_test:
+    if run_test is None:
         inp = input("Run throughput test? [Y/n]")
         run_test = not (inp == 'n' or inp == 'N')
-    processes = []
+    processes: List[multiprocessing.Process] = []
     bots = []
 
     for i in range(c.NUM_BOTS):
+        print(f"Setting up bot {i}")
         uid = c.BROKER_KEYS[i + 1] if not use_broker_client else len(processes) + 262
-        bots.append(NaiveBot(uid, use_broker_client))
-        process = multiprocessing.Process(target=bots[i].run, args=(uid, use_broker_client))
+        bot = NaiveBot(uid, use_broker_client)
+        bots.append(bot)
+        target = bot.run_throughput_test if run_test else bot.run
+        process = multiprocessing.Process(target=target, args=())
         processes.append(process)
 
     # Allow for ctrl-c exiting

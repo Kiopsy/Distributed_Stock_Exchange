@@ -1,5 +1,5 @@
 # HOST/PORT INFO
-host = "10.250.106.9"
+host = "10.250.36.224"
 SERVER_IPS = {50050: host, 50051: host, 50052: host, 50053: host, 50054: host}
 BROKER_IP = (40050, host)
 
