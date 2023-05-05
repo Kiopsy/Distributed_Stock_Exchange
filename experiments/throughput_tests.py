@@ -4,7 +4,9 @@ import trading_bots, initiate_servers
 
 
 if __name__ == "__main__":
-    initiate_servers.setup(3)
+    print("How many exchanges should be run?")
+    num_servers = int(input("> "))
+    initiate_servers.setup(num_servers)
     trading_bots.setup(use_broker_client=False, run_test=True)
-    input("Press enter once the test has concluded.")
+    print("Running next test...")
     trading_bots.setup(use_broker_client=True, run_test=True)
