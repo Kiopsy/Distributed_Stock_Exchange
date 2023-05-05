@@ -97,7 +97,8 @@ class unit_tests(unittest.TestCase):
         user2 = User("user2", 1000)
         user3 = User("user3", 1000)
 
-        # Scenario 1: Check that user1's order is executed first because it has the oldest timestamp
+        # Scenario 1: Check that user1's order is executed first because it has the oldest timestamp even though user3 tried to send their order earlier
+        print(f"I am user3 and I am trying to send my order right now but I have high latency.")
         book.add_order("bid", 10, 5, user1, oid_counter)
         book.add_order("bid", 10, 5, user3, oid_counter)
         filled_orders = book.add_order("ask", 10, 5, user2, oid_counter)
