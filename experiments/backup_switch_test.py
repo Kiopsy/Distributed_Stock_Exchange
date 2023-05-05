@@ -1,3 +1,5 @@
+import sys
+sys.path.append('../cs262-final-project')
 import time, statistics, subprocess, grpc, exchange_pb2, os, signal
 from helpers import nFaultStub
 import constants as c
@@ -9,10 +11,10 @@ def measure_client_reconnect_time(exchanges_count, exchanges_on_different_comput
     for i in range(exchanges_count):
         if exchanges_on_different_computers:
             # Start exchange on a different computer using SSH
-            exchange = subprocess.Popen(["ssh", "user@remote_host", "python3", f"exchanges.py {i}"])
+            exchange = subprocess.Popen(["ssh", "user@remote_host", "python3", "exchanges.py", str(i)])
         else:
             # Start exchange on the same computer
-            exchange = subprocess.Popen(["python3", f"exchanges.py {i}"])
+            exchange = subprocess.Popen(["python3", "exchanges.py", str(i)])
         exchanges.append(exchange)
     
     stub = nFaultStub()
