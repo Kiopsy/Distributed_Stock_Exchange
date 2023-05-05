@@ -15,8 +15,7 @@ from UI.client_helpers import apology, login_required, lookup, usd, intraday_end
 app = Flask(__name__)
 app.secret_key = 'mysecretkey'
 
-channel = grpc.insecure_channel(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
-broker_client = BrokerClient(channel)
+broker_client = BrokerClient()
 
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True

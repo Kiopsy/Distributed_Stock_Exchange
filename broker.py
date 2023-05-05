@@ -29,6 +29,7 @@ class User:
 
 class Broker(BrokerServiceServicer):
     def __init__(self) -> None:
+        self.shutdown = False
         self.uid = c.BROKER_KEYS[0]
         self.uid_to_user: Dict[int, User] = {}
         self.oid_to_order: Dict[int, Order] = {}
@@ -44,7 +45,7 @@ class Broker(BrokerServiceServicer):
         print("Broker:", *args, **kwargs)
 
     def Register(self, request, context):
-        if request.uid in self.uid_to_user.keys():
+        if request.uid in self.uid_to_user.keys() or request.uid < 0:
             return exchange_pb2.Result(result=False)
 
         self.uid_to_user[request.uid] = User(request.uid)
@@ -208,6 +209,8 @@ class Broker(BrokerServiceServicer):
     def receive_fills(self):
         self.sprint("Receive fills thread started")
         while True:
+            if self.shutdown:
+                break
             fill = self.stub.OrderFill(exchange_pb2.UserInfo(uid=self.uid))
             if not fill:
                 time.sleep(1)

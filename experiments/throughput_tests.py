@@ -6,7 +6,15 @@ import trading_bots, initiate_servers
 if __name__ == "__main__":
     print("How many exchanges should be run?")
     num_servers = int(input("> "))
-    initiate_servers.setup(num_servers)
-    trading_bots.setup(use_broker_client=False, run_test=True)
-    print("Running next test...")
-    trading_bots.setup(use_broker_client=True, run_test=True)
+    print("Press enter once this test has concluded.")
+
+    server_tuple = initiate_servers.setup(num_servers, silent_exchange=True)
+    trading_bots.setup(num_bots=5, use_broker_client=False, run_test=True)
+    input("")
+    initiate_servers.tear_down(server_tuple)
+
+    # print("Press enter once this test has concluded.")
+    # server_tuple = initiate_servers.setup(num_servers)
+    # trading_bots.setup(use_broker_client=True, run_test=True)
+    # input("")
+    # initiate_servers.tear_down(server_tuple)

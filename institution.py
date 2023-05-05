@@ -14,11 +14,15 @@ class InstitutionClient():
 
     def SendOrder(self, order_type, ticker: str, quantity: int, price: int, uid) -> Tuple[str, bool]:
         try:
-            oid =self.stub.SendOrder(exchange_pb2.OrderInfo(ticker=ticker,
-                                                            quantity=quantity,
-                                                            price=price,
-                                                            uid=uid,
-                                                            type=order_type))
+            oid = self.stub.SendOrder(exchange_pb2.OrderInfo(ticker=ticker,
+                                                             quantity=quantity,
+                                                             price=price,
+                                                             uid=uid,
+                                                             type=order_type))
+
+            if oid is None:
+                return (f"Error communicating with server", False)
+
             return ("Order sent", not oid.oid == -1)
         except Exception as e:
             return (f"Error: {str(e)}", not oid.oid == -1)

@@ -15,12 +15,14 @@ class BrokerClient():
     def sprint(self, *args, **kwargs):
         print("BrokerClient:", *args, **kwargs)
     
-    def Register(self, uid: int) -> None:
+    def Register(self, uid: int) -> bool:
         result = self.stub.Register(exchange_pb2.UserInfo(uid=int(uid)))
         if result.result:
             print("Successfully registered")
+            return True
         else:
             print("Error while registering")
+            return False
     
     def DepositCash(self, uid: int, amount: int) -> bool:
         # Deposit cash; this returns Empty
@@ -54,8 +56,10 @@ class BrokerClient():
         
         if result and result.oid == -1:
             res = ("Order failed!", False)
-        else:
+        elif result:
             res = (f"Order placed. Order id: {result.oid}", True)
+        else:
+            res = (f"Could not communicate with server", False)
 
         return res
     
