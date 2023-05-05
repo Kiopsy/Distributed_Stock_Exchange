@@ -416,7 +416,7 @@ class ExchangeServer(ExchangeServiceServicer):
             # self.debug_print("[OrderFill]", f"No filled oids for user {request.uid}")
             return failure 
         
-        # PAXOS
+        # run PAXOS to ensure order fills are accounted for in db
         state_str = f"""self.db.get_db()["uid_to_user_dict"][{request.uid}].filled_oids.popleft()"""
         if not self.vote_on_client_request(state_str):
             self.sprint("PAXOS consensus failed in OrderFill")
