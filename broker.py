@@ -242,14 +242,3 @@ if __name__ == "__main__":
     t.daemon = True
     t.start()
     server.wait_for_termination()
-    """"
-    while True:
-        _ = input("[Enter]: ")
-        # broker.stub.DepositCash(exchange_pb2.Deposit(uid=0, amount=100))
-        oid_1 = broker.stub.SendOrder(exchange_pb2.OrderInfo(ticker = "GOOGL", quantity = 10, price = 100, uid = c.USER_KEYS[0], type = exchange_pb2.OrderType.BID))
-        oid_2 = broker.stub.SendOrder(exchange_pb2.OrderInfo(ticker = "GOOGL", quantity = 5, price = 100, uid = c.USER_KEYS[0], type = exchange_pb2.OrderType.ASK))
-        broker.stub.CancelOrder(exchange_pb2.OrderId(oid=oid_1.oid))
-    """
-        
-    # deposit a dollar as a test
-    # broker.stub.DepositCash(request=exchange_pb2.Deposit(uid=0, amount=100))
