@@ -16,7 +16,7 @@ class Order:
         # return f"Order(price={self.price}, quantity={self.quantity}, timestamp={self.timestamp})"
         return f"price={self.price}, quantity={self.quantity}"
 class LimitOrderBook:
-    def __init__(self, ticker = "Not set yet"):
+    def __init__(self, ticker = "Not set yet", unit_testing = False):
         # self.filled_orders = deque()
         self.ticker = ticker
         self.bids = []
@@ -24,11 +24,12 @@ class LimitOrderBook:
         heapq.heapify(self.bids)
         heapq.heapify(self.asks)
 
-        # Initialize order book with 100 shares priced at 100
-        init_price = 100
-        init_quantity = 100
-        order = Order(-1, init_price, init_quantity, datetime.now(), -1)
-        heapq.heappush(self.asks, (order.price, order.timestamp, order))
+        if not unit_testing:
+            # Initialize order book with 100 shares priced at 100
+            init_price = 100
+            init_quantity = 100
+            order = Order(-1, init_price, init_quantity, datetime.now(), -1)
+            heapq.heappush(self.asks, (order.price, order.timestamp, order))
 
     def add_order(self, side, price, quantity, uid, new_oid):
         order = Order(uid, price, quantity, datetime.now(), new_oid)
@@ -60,7 +61,7 @@ class LimitOrderBook:
                 i = 0  
             else:
                 i += 1
-        self.display()
+        # self.display()
         return cancelled
     
     def get_orderbook(self):
