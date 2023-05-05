@@ -7,11 +7,13 @@ class nFaultStub:
         # Each stub dict holds the stub itself and its associated port
         self.stub_dict = {
             "stub": None,
-            "port": None
+            "port": None,
+            "channel": None,
         }
         self.backup_stub_dict = {
             "stub": None,
-            "port": None
+            "port": None,
+            "channel": None,
         }
 
         # A dict that has the port and host name of all possible servers to connect to
@@ -39,6 +41,7 @@ class nFaultStub:
                         self.backup_stub_dict["stub"] = exchange_pb2_grpc.ExchangeServiceStub(channel)
                         self.backup_stub_dict["stub"].Ping(exchange_pb2.Empty())
                         self.backup_stub_dict["port"] = port
+                        self.backup_stub_dict["channel"] = channel
                         print(f"Backup connected to port {port}")
                         break
                     except:
@@ -46,7 +49,7 @@ class nFaultStub:
 
     def connect(self) -> bool:
 
-        # Shuffle the servers so we don't start predicitbaly with the lowest one
+        # Shuffle the servers so we don't start predictably with the lowest one
         shuffle_servers = list(self.SERVERS.items())
         random.shuffle(shuffle_servers)
 
@@ -59,11 +62,13 @@ class nFaultStub:
                     self.stub_dict["stub"] = exchange_pb2_grpc.ExchangeServiceStub(channel)
                     self.stub_dict["stub"].Ping(exchange_pb2.Empty())
                     self.stub_dict["port"] = port
+                    self.stub_dict["channel"] = channel
                     print(f"Main stub connected to server w/ port {port}")
                 else:
                     self.backup_stub_dict["stub"] = exchange_pb2_grpc.ExchangeServiceStub(channel)
                     self.backup_stub_dict["stub"].Ping(exchange_pb2.Empty())
                     self.backup_stub_dict["port"] = port
+                    self.backup_stub_dict["channel"] = channel
                     print(f"Backup stub connected to server w/ port {port}")
                 
                 # If both are connected return true
@@ -74,6 +79,13 @@ class nFaultStub:
         
         # Return true if the main stub was able to connect
         return self.stub_dict["port"] != None
+
+    def disconnect(self) -> None:
+        if not self.stub_dict["channel"] is None:
+            self.stub_dict["channel"].close()
+
+        if not self.backup_stub_dict["channel"] is None:
+            self.backup_stub_dict["channel"].close()
     
     def __getattr__(self, name):
         def wrapper(*args, **kwargs):

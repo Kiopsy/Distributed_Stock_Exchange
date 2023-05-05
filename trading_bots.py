@@ -91,6 +91,8 @@ def setup(use_broker_client: Optional[bool] = None, run_test: Optional[bool] = N
     for process in processes:
         process.start()
 
+    print("Done setting up")
+
 if __name__ == "__main__":
     print(f"Running {c.NUM_BOTS} bots...")
     setup()

@@ -5,6 +5,7 @@ from helpers import ThreadSafeSet, sigint_handler
 import constants as c
 from concurrent import futures
 from database import Database
+from typing import List
         
 # class to define an exchange server
 class ExchangeServer(ExchangeServiceServicer):
@@ -91,6 +92,7 @@ class ExchangeServer(ExchangeServiceServicer):
                         self.revive(revive_info)
 
                     self.peer_alive[port] = True
+                    self.sprint(f"Connected to peer {port}")
                 except Exception as e:
                     self.sprint("Received connect error:", e)
                     self.peer_alive[port] = False
@@ -446,7 +448,7 @@ def serve(id):
     exchange.heartbeat_thread.start()
     server.wait_for_termination()
 
-def setup(num_servers: int) -> None:
+def setup(num_servers: int) -> List[multiprocessing.Process]:
     processes = []
     for i in range(num_servers):
         process = multiprocessing.Process(target=serve, args=(i, ))
@@ -458,6 +460,8 @@ def setup(num_servers: int) -> None:
     # Starts each process
     for process in processes:
         process.start()
+
+    return processes
 
 def main():
     # Allow for server creation by id through command-line args

@@ -29,6 +29,7 @@ class User:
 
 class Broker(BrokerServiceServicer):
     def __init__(self) -> None:
+        self.shutdown = False
         self.uid = c.BROKER_KEYS[0]
         self.uid_to_user: Dict[int, User] = {}
         self.oid_to_order: Dict[int, Order] = {}
@@ -208,6 +209,8 @@ class Broker(BrokerServiceServicer):
     def receive_fills(self):
         self.sprint("Receive fills thread started")
         while True:
+            if self.shutdown:
+                break
             fill = self.stub.OrderFill(exchange_pb2.UserInfo(uid=self.uid))
             if not fill:
                 time.sleep(1)
