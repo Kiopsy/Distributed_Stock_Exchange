@@ -1,28 +1,24 @@
 import socket, threading, time, grpc, pickle, os, sys, signal, multiprocessing
 import exchange_pb2
 from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_ExchangeServiceServicer_to_server
-from helpers import ThreadSafeSet
+from helpers import ThreadSafeSet, sigint_handler
 import constants as c
 from concurrent import futures
-from limit_order_book import LimitOrderBook
-from database import Database, User
-from collections import defaultdict, deque
-from typing import Dict
+from database import Database
         
 # class to define an exchange server
 class ExchangeServer(ExchangeServiceServicer):
     def __init__(self, id: int, silent=False) -> None:
         self.ID = id
         self.SILENT = silent
-        self.DEBUG = False
+        self.DEBUG = True
 
         # initialize channel constants
         self.HOST = socket.gethostbyname(socket.gethostname())
-        # self.HOST = "10.250.36.224"
         self.PORT = 50050 + self.ID
 
         # dict of the other servers' ports -> their host/ips
-        self.PEER_PORTS : dict[int, str] = c.SERVER_IPS.copy()
+        self.PEER_PORTS : dict[int, str] = {k: c.SERVER_IPS[k] for k in list(c.SERVER_IPS)[:c.NUM_SERVERS]}
         del self.PEER_PORTS[self.PORT]
 
         # dict of the other servers' ports -> bool determining if they are alive
@@ -55,6 +51,9 @@ class ExchangeServer(ExchangeServiceServicer):
     
         # thread safe set that tracks if a ballot id has been seen
         self.seen_ballots = ThreadSafeSet()
+
+        # keeping track of failed paxos_commits for testing purposes
+        # self.failed_commits = 0
         
     # func "sprint": prints within a server
     def sprint(self, *args, **kwargs) -> None:
@@ -262,6 +261,8 @@ class ExchangeServer(ExchangeServiceServicer):
         for _ in range(c.MAX_VOTE_ATTEMPTS):
             if self.send_commit_proposal(commit_state):
                 return True
+            # else:
+            #     self.failed_commits += 1
                 
         return False
 
@@ -276,7 +277,11 @@ class ExchangeServer(ExchangeServiceServicer):
                 context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
                 return grpc.RpcMethodHandler()
             
-            return func(self, request, context)
+            start_time = time.time()
+            res = func(self, request, context)
+            latency = time.time() - start_time
+            
+            return res
         
         return wrapper
 
@@ -368,13 +373,13 @@ class ExchangeServer(ExchangeServiceServicer):
         self.debug_print("[CancelOrder]", "Exiting successfully")
         return exchange_pb2.Result(result=result)
     
-    # WIP TODO
-    # rpc func "GetOrderList": 
-    # could probably skip this for now tbh
     @connection_required
-    def GetOrderList(self, request, context) -> exchange_pb2.OrderInfo:
+    def GetOrderList(self, request, context):
+        if request.ticker not in self.db.get_db()["orderbooks"].keys():
+            return exchange_pb2.OrderList(pickle=bytes())
         book = self.db.get_db()["orderbooks"]["GOOGL"]
-        return book.get_orderbook()
+        pickled = pickle.dumps(book)
+        return exchange_pb2.OrderList(pickle=pickled)
 
     # rpc func "DepositCash": 
     @connection_required
@@ -441,17 +446,6 @@ def serve(id):
     exchange.heartbeat_thread.start()
     server.wait_for_termination()
 
-# clean control c exiting
-def sigint_handler(signum, frame):
-    # terminate all child processes
-    for process in multiprocessing.active_children():
-        process.terminate()
-    # exit the main process without raising SystemExit
-    try:
-        sys.exit(0)
-    except SystemExit:
-        pass
-
 def main():
     # Allow for server creation by id through command-line args
     if len(sys.argv) == 2:
@@ -480,6 +474,5 @@ def main():
 if __name__ == '__main__':
     # Get your own hostname:
     hostname = socket.gethostbyname(socket.gethostname())
-    # hostname = "10.250.36.224"
     print("Hostname:", hostname)
     main()

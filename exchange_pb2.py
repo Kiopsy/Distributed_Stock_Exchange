@@ -13,47 +13,53 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x65xchange.proto\x12\x08\x65xchange\"\x1c\n\nUserStocks\x12\x0e\n\x06pickle\x18\x01 \x01(\x0c\"&\n\x07\x44\x65posit\x12\x0b\n\x03uid\x18\x01 \x01(\x05\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x05\")\n\rCancelRequest\x12\x0b\n\x03uid\x18\x01 \x01(\x05\x12\x0b\n\x03oid\x18\x02 \x01(\x05\"\x16\n\x07OrderId\x12\x0b\n\x03oid\x18\x01 \x01(\x03\"Y\n\nReviveInfo\x12\x14\n\x0cprimary_port\x18\x01 \x01(\x03\x12\x12\n\ncommit_log\x18\x02 \x01(\t\x12\x10\n\x08\x64\x62_bytes\x18\x03 \x01(\x0c\x12\x0f\n\x07updates\x18\x04 \x01(\x08\"2\n\x11HeartbeatResponse\x12\x0c\n\x04port\x18\x01 \x01(\x03\x12\x0f\n\x07primary\x18\x02 \x01(\x08\"2\n\rCommitRequest\x12\x0e\n\x06\x63ommit\x18\x01 \x01(\t\x12\x11\n\tballot_id\x18\x02 \x01(\x03\"@\n\nCommitVote\x12\x0f\n\x07\x61pprove\x18\x01 \x01(\x08\x12\x0e\n\x06\x63ommit\x18\x02 \x01(\t\x12\x11\n\tballot_id\x18\x03 \x01(\x03\")\n\x06Result\x12\x0e\n\x06result\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"\x07\n\x05\x45mpty\"\x1a\n\x07\x42\x61lance\x12\x0f\n\x07\x62\x61lance\x18\x01 \x01(\x05\"\x15\n\x06UserId\x12\x0b\n\x03uid\x18\x01 \x01(\x05\"G\n\x08\x46illInfo\x12\x0b\n\x03oid\x18\x01 \x01(\x05\x12\x15\n\ramount_filled\x18\x02 \x01(\x05\x12\x17\n\x0f\x65xecution_price\x18\x03 \x01(\x05\"l\n\tOrderInfo\x12\x0e\n\x06ticker\x18\x01 \x01(\t\x12\x10\n\x08quantity\x18\x02 \x01(\x05\x12\r\n\x05price\x18\x03 \x01(\x05\x12\x0b\n\x03uid\x18\x04 \x01(\x05\x12!\n\x04type\x18\x05 \x01(\x0e\x32\x13.exchange.OrderType\"\x17\n\x08UserInfo\x12\x0b\n\x03uid\x18\x01 \x01(\x05*\x1d\n\tOrderType\x12\x07\n\x03\x42ID\x10\x00\x12\x07\n\x03\x41SK\x10\x01\x32\xc2\x04\n\x0f\x45xchangeService\x12\x30\n\x05\x41live\x12\x0f.exchange.Empty\x1a\x14.exchange.ReviveInfo\"\x00\x12\x42\n\x10RequestHeartbeat\x12\x0f.exchange.Empty\x1a\x1b.exchange.HeartbeatResponse\"\x00\x12@\n\rProposeCommit\x12\x17.exchange.CommitRequest\x1a\x14.exchange.CommitVote\"\x00\x12\x39\n\x0eSendVoteResult\x12\x14.exchange.CommitVote\x1a\x0f.exchange.Empty\"\x00\x12*\n\x04Ping\x12\x0f.exchange.Empty\x1a\x0f.exchange.Empty\"\x00\x12\x35\n\tSendOrder\x12\x13.exchange.OrderInfo\x1a\x11.exchange.OrderId\"\x00\x12\x34\n\x0b\x43\x61ncelOrder\x12\x11.exchange.OrderId\x1a\x10.exchange.Result\"\x00\x12\x36\n\x0cGetOrderList\x12\x0f.exchange.Empty\x1a\x13.exchange.OrderInfo\"\x00\x12\x34\n\x0b\x44\x65positCash\x12\x11.exchange.Deposit\x1a\x10.exchange.Result\"\x00\x12\x35\n\tOrderFill\x12\x12.exchange.UserInfo\x1a\x12.exchange.FillInfo\"\x00\x32\xee\x03\n\rBrokerService\x12/\n\x05LogIn\x12\x12.exchange.UserInfo\x1a\x10.exchange.Result\"\x00\x12-\n\x06LogOut\x12\x0f.exchange.Empty\x1a\x10.exchange.Result\"\x00\x12\x32\n\x08Register\x12\x12.exchange.UserInfo\x1a\x10.exchange.Result\"\x00\x12\x35\n\tSendOrder\x12\x13.exchange.OrderInfo\x1a\x11.exchange.OrderId\"\x00\x12:\n\x0b\x43\x61ncelOrder\x12\x17.exchange.CancelRequest\x1a\x10.exchange.Result\"\x00\x12\x33\n\nGetBalance\x12\x10.exchange.UserId\x1a\x11.exchange.Balance\"\x00\x12\x33\n\x0b\x44\x65positCash\x12\x11.exchange.Deposit\x1a\x0f.exchange.Empty\"\x00\x12\x35\n\tGetStocks\x12\x10.exchange.UserId\x1a\x14.exchange.UserStocks\"\x00\x12\x35\n\tOrderFill\x12\x12.exchange.UserInfo\x1a\x12.exchange.FillInfo\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x65xchange.proto\x12\x08\x65xchange\"\x1b\n\tOrderList\x12\x0e\n\x06pickle\x18\x01 \x01(\x0c\"\x18\n\x06Ticker\x12\x0e\n\x06ticker\x18\x01 \x01(\t\"\x1c\n\nUserStocks\x12\x0e\n\x06pickle\x18\x01 \x01(\x0c\"&\n\x07\x44\x65posit\x12\x0b\n\x03uid\x18\x01 \x01(\x05\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x05\")\n\rCancelRequest\x12\x0b\n\x03uid\x18\x01 \x01(\x05\x12\x0b\n\x03oid\x18\x02 \x01(\x05\"\x16\n\x07OrderId\x12\x0b\n\x03oid\x18\x01 \x01(\x03\"Y\n\nReviveInfo\x12\x14\n\x0cprimary_port\x18\x01 \x01(\x03\x12\x12\n\ncommit_log\x18\x02 \x01(\t\x12\x10\n\x08\x64\x62_bytes\x18\x03 \x01(\x0c\x12\x0f\n\x07updates\x18\x04 \x01(\x08\"2\n\x11HeartbeatResponse\x12\x0c\n\x04port\x18\x01 \x01(\x03\x12\x0f\n\x07primary\x18\x02 \x01(\x08\"2\n\rCommitRequest\x12\x0e\n\x06\x63ommit\x18\x01 \x01(\t\x12\x11\n\tballot_id\x18\x02 \x01(\x03\"@\n\nCommitVote\x12\x0f\n\x07\x61pprove\x18\x01 \x01(\x08\x12\x0e\n\x06\x63ommit\x18\x02 \x01(\t\x12\x11\n\tballot_id\x18\x03 \x01(\x03\")\n\x06Result\x12\x0e\n\x06result\x18\x01 \x01(\x08\x12\x0f\n\x07message\x18\x02 \x01(\t\"\x07\n\x05\x45mpty\"\x1a\n\x07\x42\x61lance\x12\x0f\n\x07\x62\x61lance\x18\x01 \x01(\x05\"\x15\n\x06UserId\x12\x0b\n\x03uid\x18\x01 \x01(\x05\"G\n\x08\x46illInfo\x12\x0b\n\x03oid\x18\x01 \x01(\x05\x12\x15\n\ramount_filled\x18\x02 \x01(\x05\x12\x17\n\x0f\x65xecution_price\x18\x03 \x01(\x05\"\x86\x01\n\x0e\x42rokerFillInfo\x12\x0b\n\x03oid\x18\x01 \x01(\x05\x12\x0e\n\x06ticker\x18\x02 \x01(\t\x12\'\n\norder_type\x18\x03 \x01(\x0e\x32\x13.exchange.OrderType\x12\x15\n\ramount_filled\x18\x04 \x01(\x05\x12\x17\n\x0f\x65xecution_price\x18\x05 \x01(\x05\"l\n\tOrderInfo\x12\x0e\n\x06ticker\x18\x01 \x01(\t\x12\x10\n\x08quantity\x18\x02 \x01(\x05\x12\r\n\x05price\x18\x03 \x01(\x05\x12\x0b\n\x03uid\x18\x04 \x01(\x05\x12!\n\x04type\x18\x05 \x01(\x0e\x32\x13.exchange.OrderType\"\x17\n\x08UserInfo\x12\x0b\n\x03uid\x18\x01 \x01(\x05*\x1d\n\tOrderType\x12\x07\n\x03\x42ID\x10\x00\x12\x07\n\x03\x41SK\x10\x01\x32\xc3\x04\n\x0f\x45xchangeService\x12\x30\n\x05\x41live\x12\x0f.exchange.Empty\x1a\x14.exchange.ReviveInfo\"\x00\x12\x42\n\x10RequestHeartbeat\x12\x0f.exchange.Empty\x1a\x1b.exchange.HeartbeatResponse\"\x00\x12@\n\rProposeCommit\x12\x17.exchange.CommitRequest\x1a\x14.exchange.CommitVote\"\x00\x12\x39\n\x0eSendVoteResult\x12\x14.exchange.CommitVote\x1a\x0f.exchange.Empty\"\x00\x12*\n\x04Ping\x12\x0f.exchange.Empty\x1a\x0f.exchange.Empty\"\x00\x12\x35\n\tSendOrder\x12\x13.exchange.OrderInfo\x1a\x11.exchange.OrderId\"\x00\x12\x34\n\x0b\x43\x61ncelOrder\x12\x11.exchange.OrderId\x1a\x10.exchange.Result\"\x00\x12\x37\n\x0cGetOrderList\x12\x10.exchange.Ticker\x1a\x13.exchange.OrderList\"\x00\x12\x34\n\x0b\x44\x65positCash\x12\x11.exchange.Deposit\x1a\x10.exchange.Result\"\x00\x12\x35\n\tOrderFill\x12\x12.exchange.UserInfo\x1a\x12.exchange.FillInfo\"\x00\x32\xad\x04\n\rBrokerService\x12/\n\x05LogIn\x12\x12.exchange.UserInfo\x1a\x10.exchange.Result\"\x00\x12-\n\x06LogOut\x12\x0f.exchange.Empty\x1a\x10.exchange.Result\"\x00\x12\x32\n\x08Register\x12\x12.exchange.UserInfo\x1a\x10.exchange.Result\"\x00\x12\x35\n\tSendOrder\x12\x13.exchange.OrderInfo\x1a\x11.exchange.OrderId\"\x00\x12:\n\x0b\x43\x61ncelOrder\x12\x17.exchange.CancelRequest\x1a\x10.exchange.Result\"\x00\x12\x33\n\nGetBalance\x12\x10.exchange.UserId\x1a\x11.exchange.Balance\"\x00\x12\x33\n\x0b\x44\x65positCash\x12\x11.exchange.Deposit\x1a\x0f.exchange.Empty\"\x00\x12\x35\n\tGetStocks\x12\x10.exchange.UserId\x1a\x14.exchange.UserStocks\"\x00\x12\x37\n\x0cGetOrderList\x12\x10.exchange.Ticker\x1a\x13.exchange.OrderList\"\x00\x12;\n\tOrderFill\x12\x12.exchange.UserInfo\x1a\x18.exchange.BrokerFillInfo\"\x00\x62\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'exchange_pb2', globals())
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
-  _ORDERTYPE._serialized_start=737
-  _ORDERTYPE._serialized_end=766
-  _USERSTOCKS._serialized_start=28
-  _USERSTOCKS._serialized_end=56
-  _DEPOSIT._serialized_start=58
-  _DEPOSIT._serialized_end=96
-  _CANCELREQUEST._serialized_start=98
-  _CANCELREQUEST._serialized_end=139
-  _ORDERID._serialized_start=141
-  _ORDERID._serialized_end=163
-  _REVIVEINFO._serialized_start=165
-  _REVIVEINFO._serialized_end=254
-  _HEARTBEATRESPONSE._serialized_start=256
-  _HEARTBEATRESPONSE._serialized_end=306
-  _COMMITREQUEST._serialized_start=308
-  _COMMITREQUEST._serialized_end=358
-  _COMMITVOTE._serialized_start=360
-  _COMMITVOTE._serialized_end=424
-  _RESULT._serialized_start=426
-  _RESULT._serialized_end=467
-  _EMPTY._serialized_start=469
-  _EMPTY._serialized_end=476
-  _BALANCE._serialized_start=478
-  _BALANCE._serialized_end=504
-  _USERID._serialized_start=506
-  _USERID._serialized_end=527
-  _FILLINFO._serialized_start=529
-  _FILLINFO._serialized_end=600
-  _ORDERINFO._serialized_start=602
-  _ORDERINFO._serialized_end=710
-  _USERINFO._serialized_start=712
-  _USERINFO._serialized_end=735
-  _EXCHANGESERVICE._serialized_start=769
-  _EXCHANGESERVICE._serialized_end=1347
-  _BROKERSERVICE._serialized_start=1350
-  _BROKERSERVICE._serialized_end=1844
+  _ORDERTYPE._serialized_start=929
+  _ORDERTYPE._serialized_end=958
+  _ORDERLIST._serialized_start=28
+  _ORDERLIST._serialized_end=55
+  _TICKER._serialized_start=57
+  _TICKER._serialized_end=81
+  _USERSTOCKS._serialized_start=83
+  _USERSTOCKS._serialized_end=111
+  _DEPOSIT._serialized_start=113
+  _DEPOSIT._serialized_end=151
+  _CANCELREQUEST._serialized_start=153
+  _CANCELREQUEST._serialized_end=194
+  _ORDERID._serialized_start=196
+  _ORDERID._serialized_end=218
+  _REVIVEINFO._serialized_start=220
+  _REVIVEINFO._serialized_end=309
+  _HEARTBEATRESPONSE._serialized_start=311
+  _HEARTBEATRESPONSE._serialized_end=361
+  _COMMITREQUEST._serialized_start=363
+  _COMMITREQUEST._serialized_end=413
+  _COMMITVOTE._serialized_start=415
+  _COMMITVOTE._serialized_end=479
+  _RESULT._serialized_start=481
+  _RESULT._serialized_end=522
+  _EMPTY._serialized_start=524
+  _EMPTY._serialized_end=531
+  _BALANCE._serialized_start=533
+  _BALANCE._serialized_end=559
+  _USERID._serialized_start=561
+  _USERID._serialized_end=582
+  _FILLINFO._serialized_start=584
+  _FILLINFO._serialized_end=655
+  _BROKERFILLINFO._serialized_start=658
+  _BROKERFILLINFO._serialized_end=792
+  _ORDERINFO._serialized_start=794
+  _ORDERINFO._serialized_end=902
+  _USERINFO._serialized_start=904
+  _USERINFO._serialized_end=927
+  _EXCHANGESERVICE._serialized_start=961
+  _EXCHANGESERVICE._serialized_end=1540
+  _BROKERSERVICE._serialized_start=1543
+  _BROKERSERVICE._serialized_end=2100
 # @@protoc_insertion_point(module_scope)

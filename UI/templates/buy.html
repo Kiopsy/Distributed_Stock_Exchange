@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Bid
+{% endblock %}
+
+{% block main %}
+
+    <form action="/buy" method="post">
+        <div class="form-group">
+            <input autocomplete="off" autofocus class="form-control" name="symbol" placeholder="Stock Symbol" type="text">
+        </div>
+
+        <div class="form-group">
+            <input autocomplete="off" class="form-control" name="price" placeholder="Price" type="number">
+        </div>
+
+        <div class="form-group">
+            <input autocomplete="off" class="form-control" name="shares" placeholder="Shares" type="number">
+        </div>
+
+        <button class="btn btn-primary" type="submit">Bid</button>
+    </form>
+
+{% endblock %}

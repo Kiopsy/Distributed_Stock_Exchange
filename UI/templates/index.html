@@ -29,9 +29,9 @@
             <th scope="col">
                 Shares
             </th>
-            <th scope="col">
+            <!-- <th scope="col">
                 Total Value
-            </th>
+            </th> -->
 
         </tr>
 
@@ -43,9 +43,9 @@
             <td>
                 {{ stock['shares'] }}
             </td>
-            <td>
+            <!-- <td>
                 {{ stock['value'] }}
-            </td>
+            </td> -->
         </tr>
         {% endfor %}
         <tr>
@@ -55,14 +55,27 @@
     {% else %}
     <h5>
         Looks like you don't have any stocks!
-        <br>Click "Quote" to find stock prices, and "Buy" to buy some stocks!
+        <br>Click "Bid" to try and buy some stocks.
     </h5>
 
     {% endif %}
 
     <h5>
         Current cash balance:
-        <br> {{ balance }}
+        <br id = "cash"> {{ balance }}
     </h5>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+        setInterval(function() {
+            $.getJSON('/get_fill_order', function(data) {
+                if (Object.keys(data).length !== 0) {
+                    location.reload()
+                }
+            });
+        }, 5000); // Update every 5 seconds
+        });
+    </script>
 
 {% endblock %}

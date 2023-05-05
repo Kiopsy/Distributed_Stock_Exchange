@@ -42,7 +42,7 @@ class Broker(BrokerServiceServicer):
     
     def sprint(self, *args, **kwargs):
         print("Broker:", *args, **kwargs)
-        
+
     def Register(self, request, context):
         if request.uid in self.uid_to_user.keys():
             return exchange_pb2.Result(result=False)
@@ -54,7 +54,7 @@ class Broker(BrokerServiceServicer):
         return exchange_pb2.Result(result=True)
 
     def DepositCash(self, request, context):
-        if request.uid not in self.uid_to_user.keys().pickle:
+        if request.uid not in self.uid_to_user.keys():
             # just return empty regardless; non-compliant client
             return exchange_pb2.Empty()
 
@@ -63,6 +63,9 @@ class Broker(BrokerServiceServicer):
         self.stub.DepositCash(exchange_pb2.Deposit(uid=self.uid, amount=request.amount))
         self.sprint(f"User id {request.uid} has deposited {request.amount} dollars")
         return exchange_pb2.Empty()
+    
+    def GetOrderList(self, request, context):
+        return self.stub.GetOrderList(request)
 
     def SendOrder(self, request, context):
         if request.type == exchange_pb2.OrderType.BID:
@@ -81,7 +84,9 @@ class Broker(BrokerServiceServicer):
     def GetBalance(self, request, context):
         if request.uid not in self.uid_to_user.keys():
             return exchange_pb2.Balance(balance=-1)
-        return exchange_pb2.Balance(balance=self.uid_to_user[request.uid].balance)
+        balance = self.uid_to_user[request.uid].balance
+        print(f"User id {request.uid} has balance {balance}")
+        return exchange_pb2.Balance(balance=balance)
 
     def CancelOrder(self, request, context):
         if request.uid not in self.uid_to_user.keys():
@@ -112,8 +117,12 @@ class Broker(BrokerServiceServicer):
 
         oid, amount_filled, execution_price = self.uid_to_user[request.uid].fills.popleft()
 
+        side = self.oid_to_order[oid].side
+        ticker = self.oid_to_order[oid].ticker
+
         self.sprint(f"User id {request.uid} had a filled order sent")
-        return exchange_pb2.FillInfo(oid=oid, amount_filled=amount_filled, execution_price=execution_price)
+        return exchange_pb2.BrokerFillInfo(oid=oid, amount_filled=amount_filled, ticker=ticker,
+                                           execution_price=execution_price, order_type=side)
 
     def handle_bid(self, request):
         if request.uid not in self.uid_to_user.keys():
@@ -132,7 +141,6 @@ class Broker(BrokerServiceServicer):
         request_uid = request.uid
         request.uid = self.uid
         response = self.stub.SendOrder(request=request)
-
 
         if not response:
             self.sprint("Error communicating with exchange ")
@@ -189,8 +197,8 @@ class Broker(BrokerServiceServicer):
         self.broker_balance += c.BROKER_FEE - c.EXCHANGE_FEE
         self.oid_to_order[response.oid] = Order(response.oid,
                                                 request_uid,
-                                                request.ticker,
                                                 request.quantity,
+                                                request.ticker,
                                                 request.price,
                                                 exchange_pb2.OrderType.ASK)
         
@@ -210,6 +218,7 @@ class Broker(BrokerServiceServicer):
                 continue
             self.sprint(f"Received a fill with oid {fill.oid}")
             order = self.oid_to_order[fill.oid]
+            fill.amount_filled = int(fill.amount_filled)
             self.uid_to_user[order.uid].fills.append((order.oid, fill.amount_filled, fill.execution_price))
             self.oid_to_order[fill.oid].amount -= fill.amount_filled
             if order.side == exchange_pb2.OrderType.BID:
@@ -233,14 +242,3 @@ if __name__ == "__main__":
     t.daemon = True
     t.start()
     server.wait_for_termination()
-    """"
-    while True:
-        _ = input("[Enter]: ")
-        # broker.stub.DepositCash(exchange_pb2.Deposit(uid=0, amount=100))
-        oid_1 = broker.stub.SendOrder(exchange_pb2.OrderInfo(ticker = "GOOGL", quantity = 10, price = 100, uid = c.USER_KEYS[0], type = exchange_pb2.OrderType.BID))
-        oid_2 = broker.stub.SendOrder(exchange_pb2.OrderInfo(ticker = "GOOGL", quantity = 5, price = 100, uid = c.USER_KEYS[0], type = exchange_pb2.OrderType.ASK))
-        broker.stub.CancelOrder(exchange_pb2.OrderId(oid=oid_1.oid))
-    """
-        
-    # deposit a dollar as a test
-    # broker.stub.DepositCash(request=exchange_pb2.Deposit(uid=0, amount=100))

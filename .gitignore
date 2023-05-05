@@ -1,5 +1,7 @@
-__pycache__/*
+__pycache__/
 pickles/
 logs/
+.vscode/
+.DS_Store
 
 !.gitignore

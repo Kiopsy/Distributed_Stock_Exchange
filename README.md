@@ -34,11 +34,11 @@ SERVER_IPS = {50050: "10.250.78.119", 50051: "10.250.174.43", 50052: "10.250.78.
 
 To run the servers, splitting the server between different machines/terminals, you can run (where id = 0, 1, or 2).
 ```bash
-python main.py id
+python exchange.py id
 ```
 Or to run all three servers in the same terminal using multiprocessing, you can run:
 ```bash
-python main.py
+python exchange.py
 ```
 
 (The following part is not done/correct)
