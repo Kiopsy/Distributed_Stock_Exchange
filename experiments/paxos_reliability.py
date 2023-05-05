@@ -1,13 +1,7 @@
-<<<<<<< HEAD
-import sys, time, statistics, subprocess, grpc, os, signal, threading
-sys.path.append('../cs262-final-project')
-import exchange_pb2
-=======
 import sys
 sys.path.append('../cs262-final-project')
 # sys.path.append('C:/Users/vg210\Desktop/cs262-final-project/')
 import time, threading, exchange_pb2, exchange, multiprocessing, subprocess
->>>>>>> 819ebd8fea5d5e3408498898bf95eb25608525bc
 from helpers import nFaultStub
 import constants as c
 import csv
@@ -18,37 +12,6 @@ import broker
 # Create a flag for signaling the threads to terminate
 stop_threads = threading.Event()
 
-<<<<<<< HEAD
-def run_client_in_thread():
-    stub = nFaultStub()
-    if stub.connect():
-        stub.backup_stub_connect_thread.start()
-    
-def run_institution_paxos_test(num_iterations, exchanges_count, exchanges_on_different_computers, run_time_seconds):
-
-    exchanges = []
-    for i in range(exchanges_count):
-        if exchanges_on_different_computers:
-            # Start exchange on a different computer using SSH
-            exchange = subprocess.Popen(["ssh", "user@remote_host", "python3", "exchange.py", str(i)])
-        else:
-            # Start exchange on the same computer
-            exchange = subprocess.Popen(["python3", f"exchange.py", str(i)])
-        exchanges.append(exchange)
-
-    threads = []
-    for i in range(num_iterations):
-        thread = threading.Thread(target=run_client_in_thread)
-        threads.append(thread)
-        thread.start()
-
-    # Run threads for a given amount of seconds
-    timer = threading.Timer(run_time_seconds, stop_threads.set)
-    timer.start()
-
-    for thread in threads:
-        thread.join()
-=======
 csv_file = "./testing/server0.csv"
 
 def run_client_in_thread(thread_id):
@@ -79,7 +42,6 @@ def run_institution_paxos_test(num_iterations, client_count, exchanges_count, ru
         
         for j in range(num_iterations):
             exchanges: list[subprocess.Popen] = []
->>>>>>> 819ebd8fea5d5e3408498898bf95eb25608525bc
 
             for i in range(exchanges_count):
                 
@@ -87,10 +49,6 @@ def run_institution_paxos_test(num_iterations, client_count, exchanges_count, ru
                 exchange = subprocess.Popen(["python", "exchange.py", str(i)])
                 exchanges.append(exchange)
 
-<<<<<<< HEAD
-# Example usage
-run_institution_paxos_test(num_iterations=10)
-=======
             time.sleep(c.CONNECTION_WAIT_TIME + 1)
 
             threads = []
@@ -153,4 +111,3 @@ run_institution_paxos_test(num_iterations=10)
         print(f"  Standard deviation: {result['stdev']:.2f}")
 
 run_institution_paxos_test(10, 5, 4, [5, 10, 15, 20])
->>>>>>> 819ebd8fea5d5e3408498898bf95eb25608525bc
