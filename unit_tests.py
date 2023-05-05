@@ -97,6 +97,26 @@ class unit_tests(unittest.TestCase):
         user2 = User("user2", 1000)
         user3 = User("user3", 1000)
 
+        # Scenario 1: Check that user1's order is executed first because it has the highest price
+        book.add_order("bid", 10, 5, user1, oid_counter)
+        book.add_order("bid", 10, 5, user3, oid_counter)
+        filled_orders = book.add_order("ask", 10, 5, user2, oid_counter)
+
+        assert len(book.bids) == 1, "Failed to clear bid order book after execution"
+        assert len(book.asks) == 0, "Failed to clear ask order book after execution"
+        assert filled_orders[0][0] == user1, "Incorrect bid order user after execution"
+        assert filled_orders[0][1] == user2, "Incorrect ask order user after execution"
+        assert filled_orders[0][2] == 10, "Incorrect executed price"
+        assert filled_orders[0][3] == 5, "Incorrect executed size"
+        
+
+    def test_price_time_priority_latency(self):
+        # Test order matching and execution with different scenarios
+        book = LimitOrderBook(unit_testing=True)
+        user1 = User("user1", 1000)
+        user2 = User("user2", 1000)
+        user3 = User("user3", 1000)
+
         # Scenario 1: Check that user1's order is executed first because it has the oldest timestamp even though user3 tried to send their order earlier
         print(f"I am user3 and I am trying to send my order right now but I have high latency.")
         book.add_order("bid", 10, 5, user1, oid_counter)
@@ -109,6 +129,7 @@ class unit_tests(unittest.TestCase):
         assert filled_orders[0][1] == user2, "Incorrect ask order user after execution"
         assert filled_orders[0][2] == 10, "Incorrect executed price"
         assert filled_orders[0][3] == 5, "Incorrect executed size"
+
 
 if __name__ == '__main__':
     print("Begining unit tests...")
