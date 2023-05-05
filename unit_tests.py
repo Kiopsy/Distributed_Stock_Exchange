@@ -95,12 +95,14 @@ class unit_tests(unittest.TestCase):
         book = LimitOrderBook(unit_testing=True)
         user1 = User("user1", 1000)
         user2 = User("user2", 1000)
+        user3 = User("user3", 1000)
 
         # Scenario 1: Exact match between bid and ask
         book.add_order("bid", 10, 5, user1, oid_counter)
+        book.add_order("bid", 10, 5, user3, oid_counter)
         filled_orders = book.add_order("ask", 10, 5, user2, oid_counter)
 
-        assert len(book.bids) == 0, "Failed to clear bid order book after execution"
+        assert len(book.bids) == 1, "Failed to clear bid order book after execution"
         assert len(book.asks) == 0, "Failed to clear ask order book after execution"
         assert filled_orders[0][0] == user1, "Incorrect bid order user after execution"
         assert filled_orders[0][1] == user2, "Incorrect ask order user after execution"
