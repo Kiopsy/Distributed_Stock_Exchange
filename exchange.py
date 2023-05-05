@@ -14,8 +14,8 @@ class ExchangeServer(ExchangeServiceServicer):
         self.DEBUG = True
 
         # initialize channel constants
-        self.HOST = socket.gethostbyname(socket.gethostname())
         self.PORT = 50050 + self.ID
+        self.HOST = c.SERVER_IPS[self.PORT]
 
         # dict of the other servers' ports -> their host/ips
         self.PEER_PORTS : dict[int, str] = {k: c.SERVER_IPS[k] for k in list(c.SERVER_IPS)[:c.NUM_SERVERS]}

@@ -8,7 +8,8 @@ from tkinter import PhotoImage
 import pickle
 
 class BrokerClient():
-    def __init__(self, channel):
+    def __init__(self):
+        channel = grpc.insecure_channel(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
         self.stub = BrokerServiceStub(channel)
     
     def sprint(self, *args, **kwargs):
@@ -91,8 +92,7 @@ class BrokerClient():
         self.SendOrder(order_type, ticker, quantity, price, uid)
 
 def setup() -> BrokerClient:
-    channel = grpc.insecure_channel(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
-    client = BrokerClient(channel)
+    client = BrokerClient()
     return client
 
 if __name__ == "__main__":

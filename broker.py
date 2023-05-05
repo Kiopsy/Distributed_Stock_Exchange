@@ -235,7 +235,9 @@ def setup() -> Tuple[Broker, Any]:
     broker = Broker()
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     add_BrokerServiceServicer_to_server(broker, server)
-    server.add_insecure_port(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
+    ip_port = c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0])
+    print(f"Starting broker at {ip_port}")
+    server.add_insecure_port(ip_port)
     server.start()
     t = threading.Thread(target=broker.receive_fills)
     t.daemon = True
