@@ -5,9 +5,9 @@ import multiprocessing
 import threading
 from typing import Tuple, List, Any
 
-def setup(num_exchanges: int) -> Tuple[Any, broker.Broker, List[multiprocessing.Process]]:
+def setup(num_exchanges: int, silent_exchange=False) -> Tuple[Any, broker.Broker, List[multiprocessing.Process]]:
     print("Initiating exchanges")
-    exchange_servers = exchange.setup(num_exchanges)
+    exchange_servers = exchange.setup(num_exchanges, silent=silent_exchange)
     print("Done initiating exchanges. Waiting for exchanges to connect.")
     time.sleep(5)
     print("Initiating broker")

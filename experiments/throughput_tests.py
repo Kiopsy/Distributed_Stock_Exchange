@@ -8,8 +8,8 @@ if __name__ == "__main__":
     num_servers = int(input("> "))
     print("Press enter once this test has concluded.")
 
-    server_tuple = initiate_servers.setup(num_servers)
-    trading_bots.setup(use_broker_client=False, run_test=True)
+    server_tuple = initiate_servers.setup(num_servers, silent_exchange=True)
+    trading_bots.setup(num_bots=5, use_broker_client=False, run_test=True)
     input("")
     initiate_servers.tear_down(server_tuple)
 

@@ -45,7 +45,7 @@ class Broker(BrokerServiceServicer):
         print("Broker:", *args, **kwargs)
 
     def Register(self, request, context):
-        if request.uid in self.uid_to_user.keys():
+        if request.uid in self.uid_to_user.keys() or request.uid < 0:
             return exchange_pb2.Result(result=False)
 
         self.uid_to_user[request.uid] = User(request.uid)

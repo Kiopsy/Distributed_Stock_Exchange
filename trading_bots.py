@@ -65,7 +65,7 @@ class NaiveBot():
             print(f"Bot {self.uid}: Error on order: {msg}")
     
 
-def setup(use_broker_client: Optional[bool] = None, run_test: Optional[bool] = None):
+def setup(num_bots: int = c.NUM_BOTS, use_broker_client: Optional[bool] = None, run_test: Optional[bool] = None):
     if use_broker_client is None:
         inp = input("Use broker client? [Y/n]")
         use_broker_client = not (inp == 'n' or inp == 'N')
@@ -75,7 +75,7 @@ def setup(use_broker_client: Optional[bool] = None, run_test: Optional[bool] = N
     processes: List[multiprocessing.Process] = []
     bots = []
 
-    for i in range(c.NUM_BOTS):
+    for i in range(num_bots):
         print(f"Setting up bot {i}")
         uid = c.BROKER_KEYS[i + 1] if not use_broker_client else len(processes) + 262
         bot = NaiveBot(uid, use_broker_client)

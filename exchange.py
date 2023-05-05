@@ -436,8 +436,8 @@ class ExchangeServer(ExchangeServiceServicer):
         return exchange_pb2.Empty()
 
 # func "serve": starts an exchange server
-def serve(id):
-    exchange = ExchangeServer(id)
+def serve(id, silent=False):
+    exchange = ExchangeServer(id, silent=silent)
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     add_ExchangeServiceServicer_to_server(exchange, server)
     server.add_insecure_port(exchange.HOST + ':' + str(exchange.PORT))
@@ -448,10 +448,10 @@ def serve(id):
     exchange.heartbeat_thread.start()
     server.wait_for_termination()
 
-def setup(num_servers: int) -> List[multiprocessing.Process]:
+def setup(num_servers: int, silent=False) -> List[multiprocessing.Process]:
     processes = []
     for i in range(num_servers):
-        process = multiprocessing.Process(target=serve, args=(i, ))
+        process = multiprocessing.Process(target=serve, args=(i, silent))
         processes.append(process)
 
     # Allow for ctrl-c exiting
