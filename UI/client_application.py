@@ -1,4 +1,6 @@
-import os
+import sys
+sys.path.append('../cs262-final-project')
+import os, grpc, exchange_pb2
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session, jsonify
 from flask_session import Session
@@ -7,10 +9,7 @@ from werkzeug.exceptions import default_exceptions, HTTPException, InternalServe
 from werkzeug.security import check_password_hash, generate_password_hash
 from client import BrokerClient
 import constants as c
-import grpc
-import exchange_pb2
-
-from client_helpers import apology, login_required, lookup, usd, intraday_endpoints, get_user_stocks, get_news
+from UI.client_helpers import apology, login_required, lookup, usd, intraday_endpoints, get_user_stocks, get_news
 
 # Configure application
 app = Flask(__name__)
@@ -40,7 +39,8 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # Configure CS50 Library to use SQLite database
-db = SQL("sqlite:///finance.db")
+dir_path = os.path.dirname(os.path.abspath(__file__))
+db = SQL(f"sqlite:///{os.path.join(dir_path, 'finance.db')}")
 
 # Make sure API key is set
 os.environ["API_KEY"] = "sk_1463654bf81f469798bf7cf5a57c270c"

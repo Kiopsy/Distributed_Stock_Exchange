@@ -1,8 +1,8 @@
 import os, shutil
 import constants as c
-from client_application import db
+from UI.client_application import db
 
-def refresh():
+def depersist():
     for folder_path in [c.LOG_DIR, c.PKL_DIR]:
         try:
             # Delete all the files and subdirectories inside the folder
@@ -28,6 +28,6 @@ def refresh():
         print("Tables have already been dropped!")
        
 if __name__ == "__main__":
-    refresh()
+    depersist()
 
 

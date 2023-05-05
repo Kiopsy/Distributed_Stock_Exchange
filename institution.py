@@ -2,25 +2,37 @@ import socket, threading, time, grpc, os
 import exchange_pb2
 from exchange_pb2_grpc import BrokerServiceServicer, BrokerServiceStub, add_BrokerServiceServicer_to_server
 import constants as c
-from helpers import TwoFaultStub
+from helpers import nFaultStub 
 from typing import Dict, List, Tuple
 from concurrent import futures
 
-FEE = 1
-
-class Institution():
-    def __init__(self) -> None:
-        self.balance = 10000        
-        self.held_stocks = []
-        self.stub = TwoFaultStub()
+class InstitutionClient():
+    def __init__(self, uid) -> None:
+        self.stub = nFaultStub()
         self.stub.connect()
+        self.uid = uid
+
+    def SendOrder(self, order_type, ticker: str, quantity: int, price: int, uid) -> Tuple[str, bool]:
+        try:
+            oid =self.stub.SendOrder(exchange_pb2.OrderInfo(ticker=ticker,
+                                                            quantity=quantity,
+                                                            price=price,
+                                                            uid=uid,
+                                                            type=order_type))
+            return ("Order sent", not oid.oid == -1)
+        except Exception as e:
+            return (f"Error: {str(e)}", not oid.oid == -1)
+        
+    def DepositCash(self, uid: int, amount: int) -> None:
+        self.stub.DepositCash(exchange_pb2.Deposit(uid=uid, amount=amount))
     
-    def receive_pings(self):
-        while True:
-            self.stub.Ping(exchange_pb2.Empty())
-            time.sleep(3)
+    def CancelOrder(self, oid: int) -> None:
+        try:
+            self.stub.CancelOrder(exchange_pb2.CancelRequest(uid=self.uid, 
+                                                             oid=oid))
+        except Exception as e:
+            print(f"Error: {e}")
     
 if __name__ == "__main__":
-    institution = Institution()
-    threading.Thread(target=institution.receive_pings).start()
+    institution = InstitutionClient()
 

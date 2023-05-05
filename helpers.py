@@ -15,7 +15,7 @@ class nFaultStub:
         }
 
         # A dict that has the port and host name of all possible servers to connect to
-        self.SERVERS = c.SERVER_IPS.copy()
+        self.SERVERS = {k: c.SERVER_IPS[k] for k in list(c.SERVER_IPS)[:c.NUM_SERVERS]}
 
         # A thread that constanlty makes sure the backup thread is connected to anotehr available server
         self.backup_stub_connect_thread: threading.Thread = threading.Thread(target = self.background_connect, daemon=True)

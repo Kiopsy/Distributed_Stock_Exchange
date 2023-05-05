@@ -1,24 +1,41 @@
 import multiprocessing, random, grpc, exchange_pb2, threading, time, signal
 from client import BrokerClient
+from institution import InstitutionClient
 import constants as c
 from helpers import sigint_handler
+from typing import Optional
 
-def stupid_bot(uid: int) -> None:
-    channel = grpc.insecure_channel(f"{c.BROKER_IP[1]}:{c.BROKER_IP[0]}")
-    broker_client = BrokerClient(channel)
+class NaiveBot():
+    def __init__(self, uid: int, use_broker_client: bool) -> None:
+        self.uid = uid
+        self.client = BrokerClient() if use_broker_client else InstitutionClient(uid)
 
-    BID_ASK = [exchange_pb2.OrderType.BID, exchange_pb2.OrderType.ASK]
+        # Register
+        if use_broker_client:
+            self.client.Register(uid)
 
-    # Register
-    broker_client.Register(uid)
+        # Deposit sufficient funds
+        init_cash = random.randint(500, 100_000)
+        self.client.DepositCash(uid, init_cash)
+    
+    def run_throughput_test(self) -> None:
+        ticker = c.TICKERS[0]
+        price = 100
+        self.client.DepositCash(self.uid, 1000000)
+        start_time = time.time()
+        while True:
+            if time.time() - start_time >= 5:
+                break
+            num_runs += 1
 
-    # Deposit sufficient funds
-    init_cash = random.randint(500, 100_000)
-    broker_client.DepositCash(uid, init_cash)
+        print(f"Made {num_runs} orders in 5 seconds")
 
-    # Make Bids or Asks
-    while True:
-        
+    def run(self) -> None:
+        while True:
+            self.make_order()
+
+    def make_order(self):
+        BID_ASK = [exchange_pb2.OrderType.BID, exchange_pb2.OrderType.ASK]
         variance = random.uniform(-c.BOT_ORDER_RATE_VARIANCE, c.BOT_ORDER_RATE_VARIANCE)
         time.sleep(c.BOT_ORDER_RATE + variance)
         
@@ -30,21 +47,28 @@ def stupid_bot(uid: int) -> None:
 
         price = random.randint(10, 200) if bid_ask == 0 else random.randint(50, 200)
         
-        start_time = time.time()
-        msg, success = broker_client.SendOrder(BID_ASK[bid_ask], ticker, shares, price, uid)
-        latency = time.time() - start_time
+        msg, success = self.client.SendOrder(BID_ASK[bid_ask], ticker, shares, price, self.uid)
 
         if success:
-            print(f"Bot {uid}: Placed a {'bid' if bid_ask == 0 else 'ask'} for {shares} stocks of {ticker} at {price} per share")
+            print(f"Bot {self.uid}: Placed a {'bid' if bid_ask == 0 else 'ask'} for {shares} stocks of {ticker} at {price} per share")
         else:
-            print(f"Bot {uid}: Error on order: {msg}")
+            print(f"Bot {self.uid}: Error on order: {msg}")
+    
 
-
-def main():
+def setup(use_broker_client: Optional[bool] = None, run_test: Optional[bool] = None):
+    if not use_broker_client:
+        inp = input("Use broker client? [Y/n]")
+        use_broker_client = not (inp == 'n' or inp == 'N')
+    if not run_test:
+        inp = input("Run throughput test? [Y/n]")
+        run_test = not (inp == 'n' or inp == 'N')
     processes = []
+    bots = []
 
-    for _ in range(c.NUM_BOTS):
-        process = multiprocessing.Process(target=stupid_bot, args=(len(processes)+262, ))
+    for i in range(c.NUM_BOTS):
+        uid = c.BROKER_KEYS[i + 1] if not use_broker_client else len(processes) + 262
+        bots.append(NaiveBot(uid, use_broker_client))
+        process = multiprocessing.Process(target=bots[i].run, args=(uid, use_broker_client))
         processes.append(process)
 
     # Allow for ctrl-c exiting
@@ -56,4 +80,4 @@ def main():
 
 if __name__ == "__main__":
     print(f"Running {c.NUM_BOTS} bots...")
-    main()
+    setup()

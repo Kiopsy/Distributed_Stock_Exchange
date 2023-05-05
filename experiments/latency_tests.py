@@ -16,9 +16,6 @@ def run_latency_test(num_iterations, exchanges_count, clients_count, exchanges_o
             exchange = subprocess.Popen(["python3", f"exchanges.py"])
         exchanges.append(exchange)
     
-    # Start up clients
-    # for i in range(clients_count):
-    #     subprocess.Popen(["python3", "client.py"])
 
     clients: list[BrokerClient] = []
     for i in range(clients_count):

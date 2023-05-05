@@ -4,10 +4,7 @@ from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_
 from helpers import ThreadSafeSet, sigint_handler
 import constants as c
 from concurrent import futures
-from limit_order_book import LimitOrderBook
-from database import Database, User
-from collections import defaultdict, deque
-from typing import Dict
+from database import Database
         
 # class to define an exchange server
 class ExchangeServer(ExchangeServiceServicer):
@@ -54,6 +51,9 @@ class ExchangeServer(ExchangeServiceServicer):
     
         # thread safe set that tracks if a ballot id has been seen
         self.seen_ballots = ThreadSafeSet()
+
+        # keeping track of failed paxos_commits for testing purposes
+        # self.failed_commits = 0
         
     # func "sprint": prints within a server
     def sprint(self, *args, **kwargs) -> None:
@@ -261,6 +261,8 @@ class ExchangeServer(ExchangeServiceServicer):
         for _ in range(c.MAX_VOTE_ATTEMPTS):
             if self.send_commit_proposal(commit_state):
                 return True
+            # else:
+            #     self.failed_commits += 1
                 
         return False
 
@@ -275,7 +277,11 @@ class ExchangeServer(ExchangeServiceServicer):
                 context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
                 return grpc.RpcMethodHandler()
             
-            return func(self, request, context)
+            start_time = time.time()
+            res = func(self, request, context)
+            latency = time.time() - start_time
+            
+            return res
         
         return wrapper
 

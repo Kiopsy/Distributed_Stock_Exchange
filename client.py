@@ -39,14 +39,14 @@ class BrokerClient():
             self.sprint(f"Error: {e}")
             return (str(e), False, {})
 
-    def SendOrder(self, order_type, ticker, quantity, price, uid: int) -> None:
+    def SendOrder(self, order_type, ticker, quantity, price, uid: int) -> Tuple[str, bool]:
 
         try:
             result = self.stub.SendOrder(exchange_pb2.OrderInfo(ticker=ticker, 
-                                                            quantity=quantity,
-                                                            price=price,
-                                                            uid=uid,
-                                                            type=order_type))
+                                                                quantity=quantity,
+                                                                price=price,
+                                                                uid=uid,
+                                                                type=order_type))
         except Exception as e:
             self.sprint(f"Error: {e}")
             result = None
