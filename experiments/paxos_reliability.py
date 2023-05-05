@@ -1,54 +1,44 @@
-import time, statistics, grpc, multiprocessing, signal, sys
+import sys, time, statistics, subprocess, grpc, os, signal, threading
 sys.path.append('../cs262-final-project')
 import exchange_pb2
-from client import BrokerClient
-from broker import Broker
-from exchange import ExchangeServer
-from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_ExchangeServiceServicer_to_server
-from concurrent import futures
-from helpers import sigint_handler
+from helpers import nFaultStub
 import constants as c
 
-# exhanges = [ExchangeServer(i) for i in range(c.NUM_SERVERS)]
+# Create a flag for signaling the threads to terminate
+stop_threads = threading.Event()
 
-def run_broker_paxos_test(num_iterations):
-
-    def serve(id):
-        exchange = ExchangeServer(id)
-        server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-        add_ExchangeServiceServicer_to_server(exchange, server)
-        server.add_insecure_port(exchange.HOST + ':' + str(exchange.PORT))
-        server.start()
-        exchange.sprint(f"Server initialized at {exchange.HOST} on port {exchange.PORT}")
-        time.sleep(3)
-        exchange.connect()
-        exchange.heartbeat_thread.start()
-        server.wait_for_termination()
+def run_client_in_thread():
+    stub = nFaultStub()
+    if stub.connect():
+        stub.backup_stub_connect_thread.start()
     
-    print("here")
-    processes = []
-    for i in range(c.NUM_SERVERS):
-        process = multiprocessing.Process(target=serve, args=(i, ))
-        processes.append(process)
+def run_institution_paxos_test(num_iterations, exchanges_count, exchanges_on_different_computers, run_time_seconds):
 
-    # Allow for ctrl-c exiting
-    signal.signal(signal.SIGINT, sigint_handler)
+    exchanges = []
+    for i in range(exchanges_count):
+        if exchanges_on_different_computers:
+            # Start exchange on a different computer using SSH
+            exchange = subprocess.Popen(["ssh", "user@remote_host", "python3", "exchange.py", str(i)])
+        else:
+            # Start exchange on the same computer
+            exchange = subprocess.Popen(["python3", f"exchange.py", str(i)])
+        exchanges.append(exchange)
 
-    # Starts each process
-    for process in processes:
-        process.start()
+    threads = []
+    for i in range(num_iterations):
+        thread = threading.Thread(target=run_client_in_thread)
+        threads.append(thread)
+        thread.start()
 
+    # Run threads for a given amount of seconds
+    timer = threading.Timer(run_time_seconds, stop_threads.set)
+    timer.start()
 
-
-    # Calculate and print descriptive statistics
-    latencies = [latency for _ in range(num_iterations)]
-    mean = statistics.mean(latencies)
-    std_dev = statistics.stdev(latencies)
-    print(f"Mean latency: {mean} seconds")
-    print(f"Standard deviation of latency: {std_dev} seconds")
+    for thread in threads:
+        thread.join()
 
 def run_institution_paxos_test():
     pass
 
 # Example usage
-run_broker_paxos_test(num_iterations=10)
+run_institution_paxos_test(num_iterations=10)

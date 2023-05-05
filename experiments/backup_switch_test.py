@@ -28,28 +28,30 @@ def measure_client_reconnect_time(exchanges_count, exchanges_on_different_comput
 
     start_time = time.time()
     stub.DepositCash(exchange_pb2.Deposit(uid=c.BROKER_KEYS[0], amount=10))
-    latency = time.time() - start_time
-    print(f"Connection time: {latency}")
+    latency1 = time.time() - start_time
+    print(f"Connection time: {latency1}")
     
     index = stub.stub_dict["port"] - 50050
     exchanges[index].terminate()
 
     print(f"Killing exchange with id {index}")
 
-    for i in range(10, 0, -1):
+    for i in range(4, 0, -1):
         print(f"Testing in {i}")
         time.sleep(1)
 
     start_time = time.time()
     stub.DepositCash(exchange_pb2.Deposit(uid=c.BROKER_KEYS[0], amount=10))
-    latency = time.time() - start_time
-    print(f"Reconnection time: {latency}")
+    latency2 = time.time() - start_time
+    print(f"Reconnection time: {latency2}")
 
     for exch in exchanges:
         try:
             exch.terminate()
         except Exception as e:
             print(f"Error: {e}")
+
+    print(latency1, latency2)
 
     
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ def run_latency_test(num_iterations, exchanges_count, clients_count, exchanges_o
             exchange = subprocess.Popen(["ssh", "user@remote_host", "python3", "exchanges.py"])
         else:
             # Start exchange on the same computer
-            exchange = subprocess.Popen(["python3", f"exchanges.py"])
+            exchange = subprocess.Popen(["python3", "exchanges.py"])
         exchanges.append(exchange)
     
 
