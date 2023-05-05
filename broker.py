@@ -3,7 +3,7 @@ import exchange_pb2
 from exchange_pb2_grpc import BrokerServiceServicer, add_BrokerServiceServicer_to_server
 import constants as c
 from helpers import nFaultStub
-from typing import Dict, List, Tuple, Set, Deque
+from typing import Dict, List, Tuple, Set, Deque, Any
 from concurrent import futures
 from collections import deque
 import exchange_pb2_grpc
@@ -231,14 +231,18 @@ class Broker(BrokerServiceServicer):
 
             time.sleep(.1) # latency?
 
-if __name__ == "__main__":
+def setup() -> Tuple[Broker, Any]:
     broker = Broker()
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     add_BrokerServiceServicer_to_server(broker, server)
     server.add_insecure_port(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
     server.start()
-    print(f"Broker server initialized at {c.BROKER_IP[1]} on port {c.BROKER_IP[0]}")
     t = threading.Thread(target=broker.receive_fills)
     t.daemon = True
     t.start()
+    return (broker, server)
+
+if __name__ == "__main__":
+    broker, server = setup()
+    print(f"Broker server initialized at {c.BROKER_IP[1]} on port {c.BROKER_IP[0]}")
     server.wait_for_termination()
