@@ -7,6 +7,19 @@ from concurrent import futures
 from tkinter import PhotoImage
 import pickle
 
+# Wrapper for printing latency of client functions
+def latency_tester(func):
+    def wrapper(self, request, context):
+        start_time = time.time()
+        res = func(self, request, context)
+        latency = time.time() - start_time
+
+        print(f"Client called {func.__name__} with latency {latency}")
+
+        return res
+    
+    return wrapper
+
 class BrokerClient():
     def __init__(self):
         channel = grpc.insecure_channel(c.BROKER_IP[1] + ':' + str(c.BROKER_IP[0]))
