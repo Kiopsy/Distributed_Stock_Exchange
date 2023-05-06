@@ -13,43 +13,42 @@ Distributed Stock Exchange
 git clone https://github.com/alzh9000/cs262-final-project.git
 ```
 - Ensure that the most recent version of Python is downloaded [here](https://www.python.org/downloads/)
-- Ensure that gRPC is downloaded for Python using the following commands
+- Ensure that correct dependencies are installed by running the following command:
 ```bash
-pip install grpcio
-pip install grpcio-tools
+pip install -r requirements.txt
 ```
-- We use Tkinter for the GUI, so download it with the following command:
-```bash
-pip install tk
-```
+
 
 ## Setting up Servers and Clients
 
-In constants.py, make sure to set the IP/HOST of each respective server before starting.
+In constants.py, make sure to set the IP/HOST of each respective server before starting. Futhermore, ensure that the `NUM_SERVERS` constant matches the number of servers you want your distributed system to use.
 
 For example, servers with IDs = 0, 1, 2 have the respective IP's:
 ```bash
 SERVER_IPS = {50050: "10.250.78.119", 50051: "10.250.174.43", 50052: "10.250.78.119"}
+NUM_SERVERS = 3
 ```
 
 To run the servers, splitting the server between different machines/terminals, you can run (where id = 0, 1, or 2).
 ```bash
 python exchange.py id
 ```
-Or to run all three servers in the same terminal using multiprocessing, you can run:
+Or to run all `NUM_SERVERS` servers in the same terminal using multiprocessing, you can run:
 ```bash
 python exchange.py
 ```
 
-(The following part is not done/correct)
-Then, run the corresponding client:
+Then, run the corresponding broker:
 ```bash
-python client.py
+python broker.py
 ```
-and a GUI will pop up. Follow the steps there accordingly. 
-If multiple clients want to connect, repeat the above step in another terminal (make sure the IPs are stated accordingly in the helpers.py file).
 
+Lastly, start the websever that hosts the frontend client application used to interact with the service by running:
+```bash
+python UI/client_application.py
+```
 
+Naavigate to the provided webpage, where you can perfom the client interactions. (Note: once the webserver is running, clients from any device can connect.
 
 # Tasks 
 Think about project as building out each of the 3 design projects (DP)
