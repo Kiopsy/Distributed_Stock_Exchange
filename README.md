@@ -1,8 +1,3 @@
-pip install grpcio
-and 
-pip install grpcio-tools
-
-
 # cs262-final-project
 Distributed Stock Exchange
 
@@ -49,7 +44,7 @@ Lastly, start the websever that hosts the frontend client application used to in
 python UI/client_application.py
 ```
 
-Navigate to the provided webpage, where you can perfom the client interactions. (Note: once the webserver is running, clients from any device can connect.
+Navigate to the provided webpage, where you can perfom the client interactions. (Note: once the webserver is running, clients from any device can connect.)
 
 ## Tests
-Tests are located in the tests/ folder and should run automatically using the python command. **You will need to have the correct host and number of servers set in the constants.py file in order to run the tests correctly**. Further tests can be run using the files in the  experiments/ directory, such as testing the latency of the exchange or using trading bots to test throughput and correctness.
+Tests are located in the `tests/` folder and should run automatically using the `python` command, such as by running `python tests/exchange_tests.py`. **You will need to have the correct host and number of servers set in the constants.py file in order to run the tests correctly**. Further tests can be run using the files in the `experiments/` directory, such as testing the latency of the exchange or using trading bots to test throughput and correctness.
