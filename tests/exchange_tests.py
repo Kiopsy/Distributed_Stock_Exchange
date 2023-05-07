@@ -6,7 +6,6 @@ import constants as c
 from helpers import nFaultStub
 from refresh import depersist
 from concurrent import futures
-import tests.broker_tests
 from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_ExchangeServiceServicer_to_server
 
 oid_counter = 0
@@ -288,4 +287,3 @@ class integration_tests(unittest.TestCase):
 if __name__ == '__main__':
     unittest.main()
     print("Running broker/broker client integration tests")
-    tests.broker_tests.main()
