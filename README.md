@@ -51,5 +51,5 @@ python UI/client_application.py
 
 Navigate to the provided webpage, where you can perfom the client interactions. (Note: once the webserver is running, clients from any device can connect.
 
-# Tests
+## Tests
 Tests are located in the tests/ folder and should run automatically using the python command. **You will need to have the correct host and number of servers set in the constants.py file in order to run the tests correctly**. Further tests can be run using the files in the  experiments/ directory.
