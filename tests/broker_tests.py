@@ -77,6 +77,8 @@ def run_cancel_order_test(broker_client: client.BrokerClient,
 tests = [run_register_test, run_deposit_test, run_send_order_test, run_cancel_order_test]
 
 def main() -> None:
+    # Print in red
+    print("\033[91mPlease make sure you set the correct host and number of servers in constants.py. \033[00m")
     refresh.depersist() # clear the pickle files
     print("Starting up exchanges...")
     exchange.setup(c.NUM_SERVERS, silent=True)
