@@ -78,13 +78,14 @@ tests = [run_register_test, run_deposit_test, run_send_order_test, run_cancel_or
 
 def main() -> None:
     refresh.depersist() # clear the pickle files
-    exchange.setup(c.NUM_SERVERS, silent=False)
+    exchange.setup(c.NUM_SERVERS, silent=True)
     time.sleep(5) # wait for exchange to start
     broker_server, _ = broker.setup()
     broker_client = client.setup()
     for test in tests:
         test(broker_client, broker_server)
-        print(f"Passed {test.__name__}")
+        # Print in green
+        print(f"\033[92m Passed {test.__name__} \033[00m")
 
     print("Please check that two sets of fills have been printed on screen and one order has been cancelled.")
 

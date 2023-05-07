@@ -1,4 +1,6 @@
-import unittest, threading, os, time, exchange_pb2, grpc, pickle
+import unittest, sys, threading, os, time, grpc, pickle
+sys.path.append('../cs262-final-project')
+import exchange_pb2
 from limit_order_book import LimitOrderBook
 from database import User
 from exchange import ExchangeServer, setup
@@ -6,7 +8,6 @@ import constants as c
 from helpers import nFaultStub
 from refresh import depersist
 from concurrent import futures
-from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_ExchangeServiceServicer_to_server
 
 oid_counter = 0
 
