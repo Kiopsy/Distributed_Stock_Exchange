@@ -21,11 +21,12 @@ pip install -r requirements.txt
 
 ## Setting up Servers and Clients
 
-In constants.py, make sure to set the IP/HOST of each respective server before starting. Futhermore, ensure that the `NUM_SERVERS` constant matches the number of servers you want your distributed system to use.
+In constants.py, make sure to set the IP/HOST of each respective server before starting. Futhermore, ensure that the `NUM_SERVERS` constant matches the number of servers you want the exchange to use.
 
 For example, servers with IDs = 0, 1, 2 have the respective IP's:
 ```bash
-SERVER_IPS = {50050: "10.250.78.119", 50051: "10.250.174.43", 50052: "10.250.78.119"}
+host = "10.250.78.119"
+SERVER_IPS = {50050: host, 50051: host, 50052: host}
 NUM_SERVERS = 3
 ```
 
@@ -48,4 +49,6 @@ Lastly, start the websever that hosts the frontend client application used to in
 python UI/client_application.py
 ```
 
-Naavigate to the provided webpage, where you can perfom the client interactions. (Note: once the webserver is running, clients from any device can connect.
+Navigate to the provided webpage, where you can perfom the client interactions. (Note: once the webserver is running, clients from any device can connect.
+
+Tests are located in the tests/ folder and should run automatically. **You will need to have the correct host and number of servers set in the constants.py file in order to run the tests correctly**. 
