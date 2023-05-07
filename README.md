@@ -1,5 +1,5 @@
-# cs262-final-project
-Distributed Stock Exchange
+# Distributed Stock Exchange
+By Albert, Dean, Emeka, Gianni, and Victor
 
 
 ## Installation
