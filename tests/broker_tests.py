@@ -78,6 +78,7 @@ tests = [run_register_test, run_deposit_test, run_send_order_test, run_cancel_or
 
 def main() -> None:
     refresh.depersist() # clear the pickle files
+    print("Starting up exchanges...")
     exchange.setup(c.NUM_SERVERS, silent=True)
     time.sleep(5) # wait for exchange to start
     broker_server, _ = broker.setup()
