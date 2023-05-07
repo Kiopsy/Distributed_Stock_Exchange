@@ -1,31 +1,78 @@
-import unittest
+import unittest, threading, os, time, exchange_pb2, grpc
 from limit_order_book import LimitOrderBook
 from database import User
+from exchange import ExchangeServer, setup
+import constants as c
+from helpers import ThreadSafeSet
+from helpers import nFaultStub
+from refresh import depersist
+from concurrent import futures
+from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_ExchangeServiceServicer_to_server
 
 oid_counter = 0
 
-
 class unit_tests(unittest.TestCase):
 
-    # TESTING EXCHANGE CONSENSUS
+    def setUp(self):
+        self.server1 = ExchangeServer(0, silent=True)
+        self.server2 = ExchangeServer(1, silent=True)
+        self.server3 = ExchangeServer(2, silent=True)
 
-    def test_exchange_connection(self):
-        # TODO
-        pass
+        # Simulate the connections between servers
+        self.server1.peer_alive = {self.server2.PORT: True, self.server3.PORT: True}
+        self.server2.peer_alive = {self.server1.PORT: True, self.server3.PORT: True}
+        self.server3.peer_alive = {self.server1.PORT: True, self.server2.PORT: True}
 
-    def test_paxos_consensus(self):
-        # TODO
-        pass
+    def test_exchange_initialization(self):
+        # Check that the server was initialized correctly
+        self.assertEqual(self.server1.ID, 0)
+        self.assertEqual(self.server1.PORT, 50050)
+        self.assertEqual(self.server1.HOST, c.host)
+        peer_ports = {k: c.SERVER_IPS[k] for k in list(c.SERVER_IPS)[:c.NUM_SERVERS]}
+        del peer_ports[50050]
+        self.assertEqual(self.server1.PEER_PORTS, peer_ports)
+        self.assertEqual(self.server1.peer_alive, {50051: False, 50052: False})
+        self.assertEqual(self.server1.peer_stubs, {})
+        self.assertEqual(self.server1.primary_port, -1)
+        self.assertEqual(self.server1.connected, False)
+        self.assertEqual(self.server1.seen_ballots, ThreadSafeSet())
 
-    def test_leader_election(self):
-        # TODO
-        pass
+        # Check that the log file was created
+        self.assertTrue(os.path.exists("./logs/server0.log"))
 
-    # TESTING BROKER
+        # Check that the pickle file was created
+        self.assertTrue(os.path.exists("./pickles/server0.pkl"))
 
-    def test_broker_consensus(self):
-        # TODO
-        pass
+        # Check that the database was loaded or created correctly
+        self.assertIsNotNone(self.server0.db)
+
+    def test_leader_election_all_alive(self):
+        # Test when all servers are alive
+        primary_port = self.server1.leader_election()
+        self.assertEqual(primary_port, self.server1.PORT)
+
+        primary_port = self.server2.leader_election()
+        self.assertEqual(primary_port, self.server1.PORT)
+
+        primary_port = self.server3.leader_election()
+        self.assertEqual(primary_port, self.server1.PORT)
+
+        print("test_leader_election_all_alive passed.")
+
+    def test_leader_election_one_dead(self):
+        # Test when server1 is dead
+        self.server1.peer_alive[self.server2.PORT] = False
+        self.server1.peer_alive[self.server3.PORT] = False
+        self.server2.peer_alive[self.server1.PORT] = False
+        self.server3.peer_alive[self.server1.PORT] = False
+
+        primary_port = self.server2.leader_election()
+        self.assertEqual(primary_port, self.server2.PORT)
+
+        primary_port = self.server3.leader_election()
+        self.assertEqual(primary_port, self.server2.PORT)
+
+        print("test_leader_election_one_dead passed.")
 
     # TESTING LIMIT ORDER BOOK
 
@@ -55,6 +102,8 @@ class unit_tests(unittest.TestCase):
         assert book.asks[0][2].quantity == 3, "Incorrect ask order quantity"
         assert book.asks[0][2].uid == user2, "Incorrect ask order user"
 
+        print("test_add_order passed.")
+
     def test_cancel_order(self):
         # Test canceling bid and ask orders and check if they are removed from the order book
         book = LimitOrderBook(unit_testing=True)
@@ -73,6 +122,8 @@ class unit_tests(unittest.TestCase):
         assert book.cancel_order_by_price("bid", 10, user1) == False, "Incorrectly canceled non-existing bid order"
         assert book.cancel_order_by_price("ask", 12, user2) == False, "Incorrectly canceled non-existing ask order"
 
+        print("test_cancel_order passed.")
+
     def test_match_orders(self):
         # Test order matching and execution with different scenarios
         book = LimitOrderBook(unit_testing=True)
@@ -89,6 +140,8 @@ class unit_tests(unittest.TestCase):
         assert filled_orders[0][1] == user2, "Incorrect ask order user after execution"
         assert filled_orders[0][2] == 10, "Incorrect executed price"
         assert filled_orders[0][3] == 5, "Incorrect executed size"
+
+        print("test_match_orders passed.")
         
     def test_price_time_priority(self):
         # Test order matching and execution with different scenarios
@@ -109,6 +162,7 @@ class unit_tests(unittest.TestCase):
         assert filled_orders[0][2] == 10, "Incorrect executed price"
         assert filled_orders[0][3] == 5, "Incorrect executed size"
         
+        print("test_price_time_priority passed.")
 
     def test_price_time_priority_latency(self):
         # Test order matching and execution with different scenarios
@@ -130,7 +184,16 @@ class unit_tests(unittest.TestCase):
         assert filled_orders[0][2] == 10, "Incorrect executed price"
         assert filled_orders[0][3] == 5, "Incorrect executed size"
 
+        print("test_price_time_priority_latency passed.")
+
+    def tearDown(self):
+        self.server1.log_file.close()
+        self.server2.log_file.close()
+        self.server3.log_file.close()
+
+        del self.server1
+        del self.server2
+        del self.server3
 
 if __name__ == '__main__':
-    print("Begining unit tests...")
     unittest.main()
