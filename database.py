@@ -11,6 +11,9 @@ class User:
         self.ticker_to_amount: Dict[str, int] = {}
         self.filled_oids = deque()
 
+    def __eq__(self, other):
+        return self.uid == other.uid
+
 # simply use this class like it is a dictionary, it will store data automatically
 class Database():
     def __init__(self, filename = './db.pkl') -> None:

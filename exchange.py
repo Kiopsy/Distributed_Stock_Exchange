@@ -1,4 +1,4 @@
-import socket, threading, time, grpc, pickle, os, sys, signal, multiprocessing
+import socket, threading, time, grpc, pickle, os, sys, signal, multiprocessing, random
 import exchange_pb2
 from exchange_pb2_grpc import ExchangeServiceServicer, ExchangeServiceStub, add_ExchangeServiceServicer_to_server
 from helpers import ThreadSafeSet, sigint_handler
@@ -12,7 +12,7 @@ class ExchangeServer(ExchangeServiceServicer):
     def __init__(self, id: int, silent=False) -> None:
         self.ID = id
         self.SILENT = silent
-        self.DEBUG = True
+        self.DEBUG = False
 
         # initialize channel constants
         self.PORT = 50050 + self.ID
@@ -52,9 +52,6 @@ class ExchangeServer(ExchangeServiceServicer):
     
         # thread safe set that tracks if a ballot id has been seen
         self.seen_ballots = ThreadSafeSet()
-
-        # keeping track of failed paxos_commits for testing purposes
-        # self.failed_commits = 0
         
     # func "sprint": prints within a server
     def sprint(self, *args, **kwargs) -> None:
@@ -228,7 +225,7 @@ class ExchangeServer(ExchangeServiceServicer):
 
     # rpc func "ProposeCommit": takes a CommitRequest/Proposal as input, returns an approving vote iff the ballot id is unseen
     def ProposeCommit(self, request, context):
-        approved = request.ballot_id not in self.seen_ballots
+        approved = request.ballot_id > self.seen_ballots.max()
         self.seen_ballots.add(request.ballot_id)
         return exchange_pb2.CommitVote(approve = approved)
     
@@ -263,8 +260,7 @@ class ExchangeServer(ExchangeServiceServicer):
         for _ in range(c.MAX_VOTE_ATTEMPTS):
             if self.send_commit_proposal(commit_state):
                 return True
-            # else:
-            #     self.failed_commits += 1
+            time.sleep(random.uniform(0, 1) / 10)
                 
         return False
 

@@ -55,6 +55,7 @@ if __name__ == "__main__":
     iterations = int(input("> "))
     print("How many clients?")
     client_count = int(input("> "))
+    constants.NUM_SERVERS = exchg_count
     run_latency_test(num_iterations=iterations, 
                      exchanges_count=exchg_count, 
                      clients_count=client_count)
