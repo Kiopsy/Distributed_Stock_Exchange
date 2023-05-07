@@ -27,4 +27,4 @@ NUM_BOTS = 5
 BOT_ORDER_RATE_VARIANCE = 1
 
 for i in range(NUM_BOTS):
-    BROKER_KEYS.append(i + 1)
+    BROKER_KEYS.append(i + 3)
