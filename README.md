@@ -8,6 +8,7 @@ Clone the repository:
 git clone https://github.com/alzh9000/cs262-final-project.git
 ```
 Ensure that the most recent version of Python is downloaded [here](https://www.python.org/downloads/)
+
 Ensure that correct dependencies are installed by running the following command:
 ```bash
 pip install -r requirements.txt
