@@ -70,7 +70,7 @@ class BrokerClient():
         if result and result.oid == -1:
             res = ("Order failed!", False)
         elif result:
-            res = (f"Order placed. Order id: {result.oid}", True)
+            res = (f"{result.oid}", True)
         else:
             res = (f"Could not communicate with server", False)
 
@@ -80,8 +80,9 @@ class BrokerClient():
         result = self.stub.GetBalance(exchange_pb2.UserId(uid=uid))
         return result.balance
 
-    def CancelOrder(self, uid: int, oid: int) -> None:
-        self.stub.CancelOrder(exchange_pb2.CancelRequest(uid=uid, oid=oid))
+    def CancelOrder(self, uid: int, oid: int) -> bool:
+        result = self.stub.CancelOrder(exchange_pb2.CancelRequest(uid=uid, oid=oid))
+        return result.result
 
     def make_order(self, uid: int) -> None:
         print("Would you like to buy or sell a stock?")

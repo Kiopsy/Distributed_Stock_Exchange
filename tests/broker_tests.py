@@ -46,7 +46,35 @@ def run_send_order_test(broker_client: client.BrokerClient,
     # At this point, an order should be filled.
     # NOTE: MANUALLY VERIFY THAT THERE ARE TWO FILLS SHOWN ON SCREEN
 
-tests = [run_register_test, run_deposit_test, run_send_order_test]
+def run_cancel_order_test(broker_client: client.BrokerClient,
+                          broker_server: broker.Broker) -> None:
+    # Buy all of AAPL
+    msg, success = broker_client.SendOrder(exchange_pb2.OrderType.BID, "AAPL", 100, 100, 1)
+
+    assert success, msg
+
+    time.sleep(1) # ensure with near-perfect probability that the broker receives the fill 
+
+    # Try to sell for 200
+    msg, success = broker_client.SendOrder(exchange_pb2.OrderType.ASK, "AAPL", 100, 200, 1)
+
+    assert success, msg
+
+    time.sleep(1) # ensure with near-perfect probability that the broker receives the fill 
+
+    # Cancel the order
+    result = broker_client.CancelOrder(1, int(msg))
+    
+    assert result, "failed to cancel order"
+
+    # This order should not go through
+    msg, success = broker_client.SendOrder(exchange_pb2.OrderType.BID, "AAPL", 100, 200, 2)
+
+    assert success, msg
+
+    # NOTE: The exchange should report that the order was cancelled, and no fill should happen.
+
+tests = [run_register_test, run_deposit_test, run_send_order_test, run_cancel_order_test]
 
 def main() -> None:
     refresh.depersist() # clear the pickle files
@@ -58,7 +86,7 @@ def main() -> None:
         test(broker_client, broker_server)
         print(f"Passed {test.__name__}")
 
-    print("Please check that two sets of fills have been printed on screen.")
+    print("Please check that two sets of fills have been printed on screen and one order has been cancelled.")
 
 if __name__ == "__main__":
     main()
