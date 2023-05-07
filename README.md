@@ -20,8 +20,7 @@ In constants.py, make sure to set the IP/HOST of each respective server before s
 
 For example, servers with IDs = 0, 1, 2 have the respective IP's:
 ```bash
-host = "10.250.78.119"
-SERVER_IPS = {50050: host, 50051: host, 50052: host}
+SERVER_IPS = {50050: "host_ip_for_sever_0", 50051: "host_ip_for_sever_1", 50052: "host_ip_for_sever_2"}
 NUM_SERVERS = 3
 ```
 
